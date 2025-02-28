@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login
 from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
@@ -78,6 +79,7 @@ class UserLoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         token, created = Token.objects.get_or_create(user=user)
+        csrf_token = get_token(request)
         return Response({
             'token': token.key,
             'user_id': user.pk,
@@ -130,6 +132,7 @@ class ChatbotView(APIView):
             )
 
             bot_response = completion.choices[0].message.content.strip()
+            
 
             # Log interaction
             if request.user.is_authenticated:

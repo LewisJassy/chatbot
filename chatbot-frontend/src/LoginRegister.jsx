@@ -3,6 +3,9 @@ import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import Cookies from 'js-cookie';
+
+const csrfToken = Cookies.get('csrftoken');
 
 export default function LoginRegister({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -39,9 +42,16 @@ export default function LoginRegister({ onLogin }) {
         const response = await axios.post("http://localhost:8000/login/", {
           email,
           password,
+        }, {
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
         });
         if (response.status === 200) {
           localStorage.setItem('token', response.data.token); // Store token in localStorage
+          localStorage.setItem('csrf_token', response.data.csrf_token)
           setIsSuccess(true);
           setTimeout(() => {
             onLogin({ name: response.data.name, email }); // Call the onLogin callback
@@ -53,6 +63,12 @@ export default function LoginRegister({ onLogin }) {
           name,
           email,
           password,
+        }, {
+          headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true
         });
         if (response.status === 201) {
           setIsSuccess(true);
