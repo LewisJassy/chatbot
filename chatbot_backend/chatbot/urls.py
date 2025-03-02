@@ -3,9 +3,9 @@ from .views import (
     UserRegistrationView,
     UserLoginView,
     ChatbotView,
-    # SessionView,
     ChatHistoryView,
     api_home,
+    get_csrf_token,
 )
 
 urlpatterns = [
@@ -13,6 +13,6 @@ urlpatterns = [
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('chat/', ChatbotView.as_view(), name='chatbot'),
-    # path('session/', SessionView.as_view(), name='session'),
     path('history/', ChatHistoryView.as_view(), name='history'),
+    path('csrf-token/', get_csrf_token, name='csrf_token'),
 ]

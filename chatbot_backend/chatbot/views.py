@@ -7,7 +7,7 @@ from openai import OpenAI
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,6 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from dotenv import load_dotenv
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
+from .preprocessing import preprocess_text
 
 # Load environment variables
 load_dotenv()
@@ -101,6 +102,9 @@ class ChatbotView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Preprocess the user input
+            preprocessed_input = preprocess_text(user_input)
+
             # Generate response with DeepSeek
             completion = client.chat.completions.create(
                 extra_headers={
@@ -126,7 +130,7 @@ class ChatbotView(APIView):
                 messages=[
                     {
                         "role": "user",
-                        "content": user_input
+                        "content": preprocessed_input
                     }
                 ]
             )
@@ -210,6 +214,11 @@ class ChatHistoryView(APIView):
                 {'error': 'An error occurred while saving chat history. Please try again later.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    csrf_token = get_token(request)
+    return JsonResponse({'csrfToken': csrf_token})
 
 def api_home(request):
     return JsonResponse({'message': 'Welcome to the chatbot API!'})

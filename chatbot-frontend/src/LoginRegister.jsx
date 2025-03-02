@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import Cookies from 'js-cookie';
-
-const csrfToken = Cookies.get('csrftoken');
+// import Cookies from 'js-cookie';
 
 export default function LoginRegister({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -15,7 +13,21 @@ export default function LoginRegister({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false); // Track success state
+  const [csrfToken, setCsrfToken] = useState(""); // State to store CSRF token
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch CSRF token from the backend
+    const fetchCsrfToken = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/csrf-token/");
+        setCsrfToken(response.data.csrfToken);
+      } catch (err) {
+        console.error("Failed to fetch CSRF token", err);
+      }
+    };
+    fetchCsrfToken();
+  }, []);
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
