@@ -5,10 +5,7 @@ import logging
 from datetime import datetime
 from openai import OpenAI
 from django.http import JsonResponse
-from django.middleware.csrf import get_token
 from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
-from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -54,7 +51,6 @@ class UserRegistrationView(APIView):
 
 class UserLoginView(APIView):
     """Handle user login and token authentication"""
-    @method_decorator(csrf_protect, name='dispatch')
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if not serializer.is_valid():
@@ -80,7 +76,6 @@ class UserLoginView(APIView):
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
         token, created = Token.objects.get_or_create(user=user)
-        csrf_token = get_token(request)
         return Response({
             'token': token.key,
             'user_id': user.pk,
@@ -215,10 +210,6 @@ class ChatHistoryView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@ensure_csrf_cookie
-def get_csrf_token(request):
-    csrf_token = get_token(request)
-    return JsonResponse({'csrfToken': csrf_token})
 
 def api_home(request):
     return JsonResponse({'message': 'Welcome to the chatbot API!'})

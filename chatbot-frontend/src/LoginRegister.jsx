@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
 import axios from "axios";
@@ -13,21 +13,7 @@ export default function LoginRegister({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false); // Track success state
-  const [csrfToken, setCsrfToken] = useState(""); // State to store CSRF token
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Fetch CSRF token from the backend
-    const fetchCsrfToken = async () => {
-      try {
-        const response = await axios.get("http://localhost:8000/csrf-token/");
-        setCsrfToken(response.data.csrfToken);
-      } catch (err) {
-        console.error("Failed to fetch CSRF token", err);
-      }
-    };
-    fetchCsrfToken();
-  }, []);
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
@@ -56,14 +42,12 @@ export default function LoginRegister({ onLogin }) {
           password,
         }, {
           headers: {
-            'X-CSRFToken': csrfToken,
             'Content-Type': 'application/json'
           },
           withCredentials: true
         });
         if (response.status === 200) {
           localStorage.setItem('token', response.data.token); // Store token in localStorage
-          localStorage.setItem('csrf_token', response.data.csrf_token)
           setIsSuccess(true);
           setTimeout(() => {
             onLogin({ name: response.data.name, email }); // Call the onLogin callback
@@ -77,7 +61,6 @@ export default function LoginRegister({ onLogin }) {
           password,
         }, {
           headers: {
-            'X-CSRFToken': csrfToken,
             'Content-Type': 'application/json'
           },
           withCredentials: true
