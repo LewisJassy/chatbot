@@ -36,14 +36,20 @@ export default function LoginRegister({ onLogin }) {
     }
 
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      const token = localStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+
       if (isLoginMode) {
         const response = await axios.post("http://localhost:8000/login/", {
           email,
           password,
         }, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers,
           withCredentials: true
         });
         if (response.status === 200) {
@@ -60,9 +66,7 @@ export default function LoginRegister({ onLogin }) {
           email,
           password,
         }, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers,
           withCredentials: true
         });
         if (response.status === 201) {
