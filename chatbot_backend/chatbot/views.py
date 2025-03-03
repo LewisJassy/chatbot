@@ -106,21 +106,22 @@ class ChatbotView(APIView):
                     "HTTP-Referer": "http://127.0.0.1:8000/chatbot/",
                     "X-Title": "chatbot",
                 },
-                extra_body={
-                    "top_p": 1,
-                    "temperature": 0.7,
-                    "frequency_penalty": 0,
-                    "presence_penalty": 0.8,
-                    "repetition_penalty": 1,
-                    "top_k": 0,
-                    "stream": False,
+                extra_body = {
+                    "top_p": 0.85,
+                    "temperature": 0.6,
+                    "frequency_penalty": 0.3,
+                    "presence_penalty": 0.6,
+                    "repetition_penalty": 1.1,
+                    "top_k": 50,
+                    "stream": True,
                     "stream option": {
-                        'include_usage': True,
+                        "include_usage": True
                     },
-                    "max_tokens": 500,
-                    "stop": "\n"
+                    "max_tokens": 1000,
+                    "stop": ["\n\n", "User:", "AI:"]
+                }
+                ,
 
-                },
                 model="deepseek/deepseek-chat",
                 messages=[
                     {
@@ -130,7 +131,8 @@ class ChatbotView(APIView):
                 ]
             )
 
-            if not completion.choices:
+            data = json.loads(completion)  # Parse the JSON string
+            if not data.get('choices'):
                 return Response(
                     {'error': 'No response from the chatbot'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
