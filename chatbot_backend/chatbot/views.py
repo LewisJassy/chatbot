@@ -130,6 +130,12 @@ class ChatbotView(APIView):
                 ]
             )
 
+            if not completion.choices:
+                return Response(
+                    {'error': 'No response from the chatbot'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
             bot_response = completion.choices[0].message.content.strip()
             
 
