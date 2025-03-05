@@ -2,18 +2,22 @@ import json
 import os
 import logging
 # import uuid
+import secrets
 from datetime import datetime
 from openai import OpenAI
 from django.http import JsonResponse
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import BaseAuthentication, TokenAuthentication
+from rest_framework.exceptions import  AuthenticationFailed
 from dotenv import load_dotenv
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
+from django.contrib.auth.models import User
 from .preprocessing import preprocess_text
 
 # Load environment variables
@@ -28,6 +32,28 @@ client = OpenAI(
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+class RedisTokenAuthentication(BaseAuthentication):
+    """Custom authentication using Redis-stored tokens"""
+    def authenticate(self, request):
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+
+        if not auth_header.startswith('Token'):
+            return None
+        
+        token = auth_header.split(' ')[1].strip()
+        user_id = cache.get(f'auth_token:{token}')
+
+        if not user_id:
+            raise AuthenticationFailed('Invalid or expired token')
+        
+        try:
+            user = User.objects.get(id=user_id)
+            return (user, token)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('User does not exist')
+
+
 
 class UserRegistrationView(APIView):
     """Handle user registration with token creation"""
@@ -52,39 +78,51 @@ class UserRegistrationView(APIView):
 class UserLoginView(APIView):
     """Handle user login and token authentication"""
     def post(self, request):
+        print("Login request received")
         serializer = UserLoginSerializer(data=request.data)
+        print(f"serialize:{serializer}")
         if not serializer.is_valid():
+            print(f"Login serializer errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        print(f"Validated data: {serializer.validated_data}")
         user = authenticate(
             request,
-            email=serializer.validated_data['email'],
+            username=serializer.validated_data['email'],
             password=serializer.validated_data['password']
         )
-
-        # set cookie for user login data
-        if user:
-            login(request, user)
-            if not request.data.get('remember_me'):
-                # Expire session when the browser closes
-                request.session.set_expiry(0)
-            else:
-                # Use default SESSION_COOKIE_AGE
-                request.session.set_expiry(None)
-
+        print(f"Authenticated user: {user}")
         if not user:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        token = secrets.token_urlsafe(64)
+        timeout = 1209600 if request.data.get('remember_me') else 3600
 
-        token, created = Token.objects.get_or_create(user=user)
+        cache.set(f'auth_token:{token}', user.id, timeout=timeout)
+        
+        
+        print(f"User {user.email} logged in successfully")
         return Response({
-            'token': token.key,
+            'token': token,
             'user_id': user.pk,
             'email': user.email
         })
 
+class UserLogoutView(APIView):
+    """Handle token invalidation"""
+    authentication_classes = [RedisTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.auth
+        cache.delete(f'auth_token:{token}')
+        logger.info(f"User {request.user.email} logged out")
+        return Response({'status': 'success'}, status=status.HTTP_200_OK)
+
+
 class ChatbotView(APIView):
     """Handle authenticated chatbot interactions"""
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (RedisTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
