@@ -78,20 +78,15 @@ class UserRegistrationView(APIView):
 class UserLoginView(APIView):
     """Handle user login and token authentication"""
     def post(self, request):
-        print("Login request received")
         serializer = UserLoginSerializer(data=request.data)
-        print(f"serialize:{serializer}")
         if not serializer.is_valid():
-            print(f"Login serializer errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        print(f"Validated data: {serializer.validated_data}")
         user = authenticate(
             request,
             username=serializer.validated_data['email'],
             password=serializer.validated_data['password']
         )
-        print(f"Authenticated user: {user}")
         if not user:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         
@@ -101,7 +96,6 @@ class UserLoginView(APIView):
         cache.set(f'auth_token:{token}', user.id, timeout=timeout)
         
         
-        print(f"User {user.email} logged in successfully")
         return Response({
             'token': token,
             'user_id': user.pk,
