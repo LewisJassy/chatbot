@@ -17,8 +17,9 @@ from rest_framework.authentication import BaseAuthentication, TokenAuthenticatio
 from rest_framework.exceptions import  AuthenticationFailed
 from dotenv import load_dotenv
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
-from django.contrib.auth.models import User
+# import User from django.contrib.auth.models
 from .preprocessing import preprocess_text
+from .models import CustomUser
 
 # Load environment variables
 load_dotenv()
@@ -48,9 +49,9 @@ class RedisTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed('Invalid or expired token')
         
         try:
-            user = User.objects.get(id=user_id)
+            user = CustomUser.objects.get(id=user_id)
             return (user, token)
-        except User.DoesNotExist:
+        except CustomUser.DoesNotExist:
             raise AuthenticationFailed('User does not exist')
 
 
