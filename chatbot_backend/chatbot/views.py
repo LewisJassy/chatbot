@@ -20,6 +20,7 @@ from .serializers import UserRegistrationSerializer, UserLoginSerializer
 # import User from django.contrib.auth.models
 from .preprocessing import preprocess_text
 from .models import CustomUser
+from django.views.decorators.csrf import csrf_exempt
 
 # Load environment variables
 load_dotenv()
@@ -120,6 +121,7 @@ class ChatbotView(APIView):
     authentication_classes = (RedisTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
+    @csrf_exempt
     def post(self, request):
         try:
             data = json.loads(request.body)

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-// import Cookies from 'js-cookie';
+import Cookies from 'js-cookie'; // Import js-cookie
 
 export default function LoginRegister({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -14,6 +14,11 @@ export default function LoginRegister({ onLogin }) {
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false); // Track success state
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = Cookies.get('token');
+    console.log('Token from cookies:', token);
+  }, []);
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
@@ -39,10 +44,6 @@ export default function LoginRegister({ onLogin }) {
       const headers = {
         'Content-Type': 'application/json',
       };
-      const token = localStorage.getItem('token');
-      if (token) {
-        headers['Authorization'] = `Token ${token}`;
-      }
 
       if (isLoginMode) {
         const response = await axios.post("http://localhost:8000/login/", {
@@ -53,7 +54,7 @@ export default function LoginRegister({ onLogin }) {
           withCredentials: true
         });
         if (response.status === 200) {
-          localStorage.setItem('token', response.data.token); // Store token in localStorage
+          Cookies.set('token', response.data.token, { expires: 14 }); // Store token in cookies
           setIsSuccess(true);
           setTimeout(() => {
             onLogin({ name: response.data.name, email }); // Call the onLogin callback
