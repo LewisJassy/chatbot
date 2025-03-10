@@ -11,6 +11,7 @@ export default function LoginRegister({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false); // Add rememberMe state
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false); // Track success state
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function LoginRegister({ onLogin }) {
         const response = await axios.post("http://localhost:8000/login/", {
           email,
           password,
+          remember_me: rememberMe // Send rememberMe value to backend
         }, {
           headers,
           withCredentials: true
@@ -164,6 +166,19 @@ export default function LoginRegister({ onLogin }) {
                   className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
+              </div>
+            )}
+            {isLoginMode && (
+              <div>
+                <label className="block text-white font-medium mb-1">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="mr-2"
+                  />
+                  Remember Me
+                </label>
               </div>
             )}
             <button
