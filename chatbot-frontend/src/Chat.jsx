@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import axios from "axios";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
+import axios from "./utils/axios";
 
 export default function Chat() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -28,14 +28,18 @@ export default function Chat() {
     setMessages((prevMessages) => [...prevMessages, userMessage]);
     setInputMessage("");
     try {
-      const token = localStorage.getItem('token'); // Retrieve token from localStorage
-      const response = await axios.post("http://localhost:8000/chat/", {
-        message: inputMessage,
-      }, {
-        headers: {
-          Authorization: `Token ${token}`,
+      const token = localStorage.getItem("token"); // Retrieve token from localStorage
+      const response = await axios.post(
+        "chat/",
+        {
+          message: inputMessage,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
       const botMessage = { text: response.data.bot_response, isUser: false };
       setMessages((prevMessages) => [...prevMessages, botMessage]);
     } catch (err) {
@@ -55,9 +59,22 @@ export default function Chat() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} startNewChat={startNewChat} />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        startNewChat={startNewChat}
+      />
       <div style={chatAreaStyle}>
-        <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} newChat={newChat} messages={messages} inputMessage={inputMessage} setInputMessage={setInputMessage} handleSubmit={handleSubmit} messagesEndRef={messagesEndRef} />
+        <ChatWindow
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          newChat={newChat}
+          messages={messages}
+          inputMessage={inputMessage}
+          setInputMessage={setInputMessage}
+          handleSubmit={handleSubmit}
+          messagesEndRef={messagesEndRef}
+        />
       </div>
     </div>
   );

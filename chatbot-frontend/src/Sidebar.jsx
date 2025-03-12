@@ -1,12 +1,30 @@
 import React, { useState } from "react";
-import { Plus, Search, User, Bell, Settings, HelpCircle, X, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  LogOut,
+  Search,
+  User,
+  Bell,
+  Settings,
+  HelpCircle,
+  X,
+  ChevronDown,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function Sidebar({ sidebarOpen, setSidebarOpen, startNewChat, model, setModel }) {
+export default function Sidebar({
+  sidebarOpen,
+  setSidebarOpen,
+  startNewChat,
+  model,
+  setModel,
+}) {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const modelOptions = [
     { name: "free", label: "Free" },
     { name: "sourceplus", label: "Source Plus" },
   ];
+  const navigate = useNavigate();
 
   const chatHistory = [
     "Chat 1",
@@ -14,6 +32,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, startNewChat, mod
     "Chat 3",
     // Add more chat history items here
   ];
+
+  const handleLogout = (label) => {
+    if (label == "Logout") {
+      console.log("logging out");
+      localStorage.clear();
+      navigate("/login");
+    } else {
+      console.log("ohh !");
+    }
+  };
 
   return (
     <div
@@ -60,7 +88,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, startNewChat, mod
             className="flex items-center justify-between p-2 bg-gray-700 rounded-lg cursor-pointer"
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
           >
-            <span>Select Model <ChevronDown className="inline w-4 h-4" /></span>
+            <span>
+              Select Model <ChevronDown className="inline w-4 h-4" />
+            </span>
           </div>
           {isModelDropdownOpen && (
             <div className="mt-2 bg-gray-700 rounded-lg max-h-40 overflow-y-auto scrollbar-dark">
@@ -123,10 +153,12 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, startNewChat, mod
             { icon: <Bell className="w-5 h-5 mr-2" />, label: "Notifications" },
             { icon: <Settings className="w-5 h-5 mr-2" />, label: "Settings" },
             { icon: <HelpCircle className="w-5 h-5 mr-2" />, label: "Help" },
+            { icon: <LogOut className="w-5 h-5 mr-2" />, label: "Logout" },
           ].map((item, index) => (
             <div
               key={index}
               className="flex items-center p-3 hover:bg-gray-700 rounded-lg cursor-pointer"
+              onClick={() => handleLogout(item.label)}
             >
               {item.icon}
               {item.label}
@@ -143,3 +175,4 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen, startNewChat, mod
     </div>
   );
 }
+

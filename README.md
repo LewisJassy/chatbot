@@ -1,6 +1,5 @@
 # Chatbot
 
-
 This repository contains a chatbot application with a React frontend and a Django backend.
 
 ## Description

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
-import axios from "axios";
+import axios from "./utils/axios";
 import { useNavigate } from "react-router-dom";
-import Cookies from 'js-cookie'; // Import js-cookie
+import Cookies from "js-cookie"; // Import js-cookie
 
 export default function LoginRegister({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -11,15 +11,9 @@ export default function LoginRegister({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // Add rememberMe state
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false); // Track success state
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = Cookies.get('token');
-    console.log('Token from cookies:', token);
-  }, []);
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
@@ -35,7 +29,7 @@ export default function LoginRegister({ onLogin }) {
       setError("Passwords do not match.");
       return;
     }
-    
+
     if (!email.trim() || !password.trim() || (!isLoginMode && !name.trim())) {
       setError("All fields are required.");
       return;
@@ -43,20 +37,16 @@ export default function LoginRegister({ onLogin }) {
 
     try {
       const headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       if (isLoginMode) {
-        const response = await axios.post("http://localhost:8000/login/", {
+        const response = await axios.post("token/", {
           email,
           password,
-          remember_me: rememberMe // Send rememberMe value to backend
-        }, {
-          headers,
-          withCredentials: true
         });
-        if (response.status === 200) {
-          Cookies.set('token', response.data.token, { expires: 14 }); // Store token in cookies
+        if (response.data) {
+          localStorage.setItem("token", response.data.access);
           setIsSuccess(true);
           setTimeout(() => {
             onLogin({ name: response.data.name, email }); // Call the onLogin callback
@@ -64,14 +54,18 @@ export default function LoginRegister({ onLogin }) {
           }, 1500); // Delay to show success message
         }
       } else {
-        const response = await axios.post("http://localhost:8000/register/", {
-          name,
-          email,
-          password,
-        }, {
-          headers,
-          withCredentials: true
-        });
+        const response = await axios.post(
+          "register/",
+          {
+            name,
+            email,
+            password,
+          },
+          {
+            headers,
+            withCredentials: true,
+          },
+        );
         if (response.status === 201) {
           setIsSuccess(true);
           setTimeout(() => {
@@ -82,7 +76,11 @@ export default function LoginRegister({ onLogin }) {
       }
     } catch (err) {
       console.error(err);
-      setError(isLoginMode ? "Failed to login. Please try again." : "Failed to register. Please try again.");
+      setError(
+        isLoginMode
+          ? "Failed to login. Please try again."
+          : "Failed to register. Please try again.",
+      );
     }
   };
 
@@ -129,7 +127,9 @@ export default function LoginRegister({ onLogin }) {
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLoginMode && (
               <div>
-                <label className="block text-white font-medium mb-1">Name</label>
+                <label className="block text-white font-medium mb-1">
+                  Name
+                </label>
                 <input
                   type="text"
                   placeholder="Enter your full name"
@@ -149,7 +149,9 @@ export default function LoginRegister({ onLogin }) {
               />
             </div>
             <div>
-              <label className="block text-white font-medium mb-1">Password</label>
+              <label className="block text-white font-medium mb-1">
+                Password
+              </label>
               <input
                 type="password"
                 placeholder="Enter your password"
@@ -159,26 +161,15 @@ export default function LoginRegister({ onLogin }) {
             </div>
             {!isLoginMode && (
               <div>
-                <label className="block text-white font-medium mb-1">Confirm Password</label>
+                <label className="block text-white font-medium mb-1">
+                  Confirm Password
+                </label>
                 <input
                   type="password"
                   placeholder="Confirm your password"
                   className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
-              </div>
-            )}
-            {isLoginMode && (
-              <div>
-                <label className="block text-white font-medium mb-1">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="mr-2"
-                  />
-                  Remember Me
-                </label>
               </div>
             )}
             <button
@@ -195,7 +186,9 @@ export default function LoginRegister({ onLogin }) {
         {!isSuccess && (
           <div className="text-center mt-6">
             <p className="text-gray-400">
-              {isLoginMode ? "Don't have an account?" : "Already have an account?"} {" "}
+              {isLoginMode
+                ? "Don't have an account?"
+                : "Already have an account?"}{" "}
               <button
                 onClick={toggleMode}
                 className="text-green-500 hover:underline font-medium"

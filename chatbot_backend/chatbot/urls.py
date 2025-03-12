@@ -1,18 +1,10 @@
-from django.urls import path
-from .views import (
-    UserRegistrationView,
-    UserLoginView,
-    UserLogoutView,
-    ChatbotView,
-    ChatHistoryView,
-    api_home,
-)
+from django.urls import path, include
+from . import views
+from . import chat_views
+
 
 urlpatterns = [
-    path('', api_home, name='api_home'),
-    path('register/', UserRegistrationView.as_view(), name='register'),
-    path('login/', UserLoginView.as_view(), name='login'),
-    path('logout/', UserLogoutView.as_view(), name='logout'),
-    path('chat/', ChatbotView.as_view(), name='chatbot'),
-    path('history/', ChatHistoryView.as_view(), name='history'),
+    path("ls-users/", views.ListUserAPIView.as_view(), name="ls-users"),
+    path("register/", views.CustomUserCreateView.as_view(), name="register"),
+    path("chat/", chat_views.ChatbotView.as_view(), name="chat"),
 ]
