@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { CheckCircle, ThumbsUp } from "lucide-react"; // Import icons for success feedback
-import axios from "axios";
+import { CheckCircle, ThumbsUp } from "lucide-react";
+import axios from "./utils/axios";
 import { useNavigate } from "react-router-dom";
-import Cookies from 'js-cookie'; // Import js-cookie
+import Cookies from "js-cookie";
 
 export default function LoginRegister({ onLogin }) {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -11,20 +11,19 @@ export default function LoginRegister({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // Add rememberMe state
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false); // Track success state
+  const [isSuccess, setIsSuccess] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = Cookies.get('token');
-    console.log('Token from cookies:', token);
+    const token = Cookies.get("token");
+    console.log("Token from cookies:", token);
   }, []);
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     setError("");
-    setIsSuccess(false); // Reset success state when toggling modes
   };
 
   const handleSubmit = async (e) => {
@@ -35,7 +34,7 @@ export default function LoginRegister({ onLogin }) {
       setError("Passwords do not match.");
       return;
     }
-    
+
     if (!email.trim() || !password.trim() || (!isLoginMode && !name.trim())) {
       setError("All fields are required.");
       return;
@@ -43,164 +42,170 @@ export default function LoginRegister({ onLogin }) {
 
     try {
       const headers = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
 
       if (isLoginMode) {
-        const response = await axios.post("http://localhost:8000/login/", {
-          email,
-          password,
-          remember_me: rememberMe // Send rememberMe value to backend
-        }, {
-          headers,
-          withCredentials: true
-        });
-        if (response.status === 200) {
-          Cookies.set('token', response.data.token, { expires: 14 }); // Store token in cookies
+        // Login
+        const response = await axios.post(
+          "login/",
+          {
+            email,
+            password,
+            remember_me: rememberMe,
+          },
+          {
+            headers,
+            withCredentials: true,
+          }
+        );
+        if (response.data) {
+          // console.log("Response data:", response.data);
+          localStorage.setItem("token", response.data.access_token);
+          console.log("Token stored:", localStorage.getItem("token"));
           setIsSuccess(true);
           setTimeout(() => {
-            onLogin({ name: response.data.name, email }); // Call the onLogin callback
+            onLogin({ name: response.data.name, email });
             navigate("/chat");
-          }, 1500); // Delay to show success message
+          }, 1500);
         }
       } else {
-        const response = await axios.post("http://localhost:8000/register/", {
-          name,
-          email,
-          password,
-        }, {
-          headers,
-          withCredentials: true
-        });
+        // Register
+        const response = await axios.post(
+          "register/",
+          {
+            name,
+            email,
+            password,
+          },
+          {
+            headers,
+            withCredentials: true,
+          }
+        );
         if (response.status === 201) {
           setIsSuccess(true);
           setTimeout(() => {
-            onLogin({ name, email }); // Call the onLogin callback
-            navigate("/chat");
-          }, 1500); // Delay to show success message
+            setIsLoginMode(true);
+            setError("");
+          }, 1500);
         }
       }
     } catch (err) {
       console.error(err);
-      setError(isLoginMode ? "Failed to login. Please try again." : "Failed to register. Please try again.");
+      setError(
+        isLoginMode
+          ? "Failed to login. Please try again."
+          : "Failed to register. Please try again."
+      );
     }
   };
 
-  LoginRegister.propTypes = {
-    onLogin: PropTypes.func.isRequired,
-  };
-
   return (
-    <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-800 via-gray-900 to-black">
-      <div className="w-full max-w-lg bg-gray-700 p-10 rounded-xl shadow-2xl">
-        {/* Success Message */}
+    <div className="min-h-screen flex justify-center items-center">
+      <div className="max-w-md w-full p-6 bg-gray-800 rounded-lg shadow-md">
         {isSuccess && (
-          <div className="flex flex-col items-center justify-center mb-6">
-            <CheckCircle className="w-12 h-12 text-green-500 mb-4" />
-            <h2 className="text-2xl font-bold text-green-500 text-center">
-              Congratulations! 🎉
-            </h2>
-            <p className="text-gray-300 text-center mt-2">
-              {isLoginMode
-                ? "You've successfully logged in."
-                : "You've successfully registered."}
-            </p>
+          <div className="flex items-center justify-center mb-4 text-green-500">
+            <CheckCircle className="mr-2" />
+            <span>
+              {isLoginMode ? "Login Successful!" : "Registration Successful!"}
+            </span>
           </div>
         )}
 
-        {!isSuccess && (
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-center mb-2 text-white">
-              {isLoginMode ? "Welcome Back!" : "Create an Account"}
-            </h1>
-            <p className="text-gray-400 text-center">
-              {isLoginMode
-                ? "Please log in to continue."
-                : "Join us to get started."}
-            </p>
-          </div>
-        )}
+        {error && <div className="text-red-500 mb-4 text-center">{error}</div>}
 
-        {error && !isSuccess && (
-          <p className="text-red-500 mb-4 text-center">{error}</p>
-        )}
-
-        {!isSuccess && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLoginMode && (
-              <div>
-                <label className="block text-white font-medium mb-1">Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {!isLoginMode && (
             <div>
-              <label className="block text-white font-medium mb-1">Email</label>
+              <label className="block text-white font-medium mb-1">
+                Name
+              </label>
               <input
-                type="email"
-                placeholder="Enter your email"
-                className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-2 rounded-md"
               />
             </div>
+          )}
+
+          <div>
+            <label className="block text-white font-medium mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-2 rounded-md"
+            />
+          </div>
+
+          <div>
+            <label className="block text-white font-medium mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-2 rounded-md"
+            />
+          </div>
+
+          {!isLoginMode && (
             <div>
-              <label className="block text-white font-medium mb-1">Password</label>
+              <label className="block text-white font-medium mb-1">
+                Confirm Password
+              </label>
               <input
                 type="password"
-                placeholder="Enter your password"
-                className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-2 rounded-md"
               />
             </div>
-            {!isLoginMode && (
-              <div>
-                <label className="block text-white font-medium mb-1">Confirm Password</label>
-                <input
-                  type="password"
-                  placeholder="Confirm your password"
-                  className="w-full p-3 border border-gray-500 rounded-md bg-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-            )}
-            {isLoginMode && (
-              <div>
-                <label className="block text-white font-medium mb-1">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="mr-2"
-                  />
-                  Remember Me
-                </label>
-              </div>
-            )}
-            <button
-              type="submit"
-              className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 transition flex items-center justify-center"
-            >
-              {isLoginMode ? "Log In" : "Sign Up"}
-              {isSuccess && <ThumbsUp className="w-5 h-5 ml-2" />}
-            </button>
-          </form>
-        )}
+          )}
 
-        {/* Toggle Mode */}
+          {isLoginMode && (
+            <div>
+              <label className="block text-white font-medium mb-1">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="mr-2"
+                />
+                Remember Me
+              </label>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 transition flex items-center justify-center"
+          >
+            {isLoginMode ? "Login" : "Register"}
+            <ThumbsUp className="ml-2" />
+          </button>
+        </form>
+
         {!isSuccess && (
           <div className="text-center mt-6">
             <p className="text-gray-400">
-              {isLoginMode ? "Don't have an account?" : "Already have an account?"} {" "}
+              {isLoginMode
+                ? "Don't have an account?"
+                : "Already have an account?"}{" "}
               <button
                 onClick={toggleMode}
                 className="text-green-500 hover:underline font-medium"
               >
-                {isLoginMode ? "Sign Up" : "Log In"}
+                {isLoginMode ? "Register" : "Login"}
               </button>
             </p>
           </div>
@@ -209,3 +214,7 @@ export default function LoginRegister({ onLogin }) {
     </div>
   );
 }
+
+LoginRegister.propTypes = {
+  onLogin: PropTypes.func.isRequired,
+};

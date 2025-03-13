@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import axios from "./utils/axios";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
 
@@ -12,7 +12,7 @@ export default function Chat() {
 
   const startNewChat = () => {
     setNewChat(true);
-    setTimeout(() => setNewChat(false), 0); // Reset `newChat` to ensure ChatWindow updates
+    setTimeout(() => setNewChat(false), 0);
   };
 
   const scrollToBottom = () => {
@@ -24,21 +24,33 @@ export default function Chat() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please log in to obtain a token.");
+      return;
+    }
+
     const userMessage = { text: inputMessage, isUser: true };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInputMessage("");
+
     try {
-      const token = localStorage.getItem('token'); // Retrieve token from localStorage
-      const response = await axios.post("http://localhost:8000/chat/", {
-        message: inputMessage,
-      }, {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
-      });
+      const response = await axios.post(
+        "chat/",
+        { message: inputMessage },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       const botMessage = { text: response.data.bot_response, isUser: false };
-      setMessages((prevMessages) => [...prevMessages, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
+      if (err.response && err.response.status === 401) {
+        alert("Unauthorized. Please log in again.");
+      }
       console.error("Error communicating with the backend", err);
     }
   };
@@ -55,9 +67,22 @@ export default function Chat() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} startNewChat={startNewChat} />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        startNewChat={startNewChat}
+      />
       <div style={chatAreaStyle}>
-        <ChatWindow sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} newChat={newChat} messages={messages} inputMessage={inputMessage} setInputMessage={setInputMessage} handleSubmit={handleSubmit} messagesEndRef={messagesEndRef} />
+        <ChatWindow
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          newChat={newChat}
+          messages={messages}
+          inputMessage={inputMessage}
+          setInputMessage={setInputMessage}
+          handleSubmit={handleSubmit}
+          messagesEndRef={messagesEndRef}
+        />
       </div>
     </div>
   );
