@@ -2,7 +2,7 @@ import json
 import os
 import logging
 # import uuid
-import secrets
+# import secrets
 from datetime import datetime
 from openai import OpenAI
 from django.http import JsonResponse
@@ -11,16 +11,17 @@ from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import BaseAuthentication, TokenAuthentication
-from rest_framework.exceptions import  AuthenticationFailed
+# from rest_framework.authentication import BaseAuthentication, TokenAuthentication
+# from rest_framework.exceptions import  AuthenticationFailed
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import TokenError
 from dotenv import load_dotenv
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
 # import User from django.contrib.auth.models
 from .preprocessing import preprocess_text
-from .models import CustomUser
-from django.views.decorators.csrf import csrf_exempt
+from .models import ChatHistory
 
 # Load environment variables
 load_dotenv()
@@ -35,28 +36,6 @@ client = OpenAI(
 # Configure logging
 logger = logging.getLogger(__name__)
 
-class RedisTokenAuthentication(BaseAuthentication):
-    """Custom authentication using Redis-stored tokens"""
-    def authenticate(self, request):
-        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
-
-        if not auth_header.startswith('Token'):
-            return None
-        
-        token = auth_header.split(' ')[1].strip()
-        user_id = cache.get(f'auth_token:{token}')
-
-        if not user_id:
-            raise AuthenticationFailed('Invalid or expired token')
-        
-        try:
-            user = CustomUser.objects.get(id=user_id)
-            return (user, token)
-        except CustomUser.DoesNotExist:
-            raise AuthenticationFailed('User does not exist')
-
-
-
 class UserRegistrationView(APIView):
     """Handle user registration with token creation"""
     def post(self, request):
@@ -64,15 +43,17 @@ class UserRegistrationView(APIView):
         
         if serializer.is_valid():
             try:
-                user = serializer.save()
-                token, created = Token.objects.get_or_create(user=user) # Create auth token
-                return Response(status=status.HTTP_201_CREATED)
+                serializer.save()
+                return Response(
+                    {'message': 'User created successfully'},
+                    status=status.HTTP_201_CREATED
+                )
             except Exception as e:
                 logger.error(f"Error during user registration: {str(e)}")
                 return Response(
                     {'error': 'An error occurred during registration. Please try again later.'},
                     status=status.HTTP_400_BAD_REQUEST
-                        )
+                )
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -91,41 +72,52 @@ class UserLoginView(APIView):
         )
         if not user:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        token = secrets.token_urlsafe(64)
-        timeout = 1209600 if request.data.get('remember_me') else 3600
 
-        cache.set(f'auth_token:{token}', user.id, timeout=timeout)
-        
-        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
         return Response({
-            'token': token,
+            'access_token': access_token,
+            'refresh_token': refresh_token,
             'user_id': user.pk,
             'email': user.email
         })
 
+
 class UserLogoutView(APIView):
-    """Handle token invalidation"""
-    authentication_classes = [RedisTokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    """Logout user and blacklist the refresh token"""
+    authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        token = request.auth
-        cache.delete(f'auth_token:{token}')
-        logger.info(f"User {request.user.email} logged out")
-        return Response({'status': 'success'}, status=status.HTTP_200_OK)
+        try:
+            refresh_token = request.data.get("refresh_token")
+
+            if not refresh_token:
+                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Blacklist the refresh token
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except TokenError as e:
+                return Response({"error": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({"status": "success", "message": "User logged out successfully."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class ChatbotView(APIView):
     """Handle authenticated chatbot interactions"""
-    authentication_classes = (RedisTokenAuthentication,)
+    authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @csrf_exempt
     def post(self, request):
         try:
-            data = json.loads(request.body)
-            user_input = data.get('message', '').strip()
+            user_input = request.data.get('message', '').strip()
             if not user_input:
                 return Response(
                     {'error': 'Message is required'},
@@ -148,8 +140,8 @@ class ChatbotView(APIView):
                     "presence_penalty": 0.6,
                     "repetition_penalty": 1.1,
                     "top_k": 50,
-                    "stream": True,
-                    "stream option": {
+                    "stream": False,
+                    "stream_options": {
                         "include_usage": True
                     },
                     "max_tokens": 1000,
@@ -166,8 +158,7 @@ class ChatbotView(APIView):
                 ]
             )
 
-            data = json.loads(completion)  # Parse the JSON string
-            if not data.get('choices'):
+            if not completion.choices:
                 return Response(
                     {'error': 'No response from the chatbot'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -175,6 +166,7 @@ class ChatbotView(APIView):
 
             bot_response = completion.choices[0].message.content.strip()
             
+
 
             # Log interaction
             if request.user.is_authenticated:
@@ -186,14 +178,12 @@ class ChatbotView(APIView):
                 'timestamp': datetime.now().isoformat()
             })
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON format: {str(e)}")
+        except json.JSONDecodeError:
             return Response(
                 {'error': 'Invalid JSON format'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
-            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        except Exception:
             return Response(
                 {'error': 'Internal server error'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -211,19 +201,9 @@ class ChatbotView(APIView):
             }
         )
 
-# class SessionView(APIView):
-#     """Generate session tokens for anonymous users"""
-#     def get(self, request):
-#         if not request.session.session_key:
-#             request.session.create()
-#         return Response({
-#             'session_token': str(uuid.uuid4()),
-#             'session_key': request.session.session_key
-#         })
-
 class ChatHistoryView(APIView):
     """Manage chat history storage"""
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -235,16 +215,16 @@ class ChatHistoryView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            chat_history = request.session.get('chat_history', [])
-            entry = {
-                'message': message,
-                'timestamp': datetime.now().isoformat(),
-                'user': request.user.pk
-            }
-            chat_history.append(entry)
-            request.session['chat_history'] = chat_history
-            
-            return Response({'status': 'success', 'entry': entry})
+            chat_history = ChatHistory.objects.create(
+                user=request.user,
+                message=message
+            )
+
+            return Response({'status': 'success', 'entry': {
+                'message': chat_history.message,
+                'timestamp': chat_history.timestamp.isoformat(),
+                'user': chat_history.user.pk
+            }})
 
         except Exception as e:
             logger.error(f"Chat history error: {str(e)}")
@@ -255,4 +235,9 @@ class ChatHistoryView(APIView):
 
 
 def api_home(request):
-    return JsonResponse({'message': 'Welcome to the chatbot API!'})
+    cache_info = {
+        'cache_engine': 'Redis',
+        'cache_status': cache.client.get_client().ping(),
+        'cache_keys': cache.client.get_client().dbsize()
+    }
+    return JsonResponse({'message': 'Welcome to the chatbot API!', 'cache': cache_info})
