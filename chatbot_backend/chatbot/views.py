@@ -144,8 +144,8 @@ class ChatbotView(APIView):
                     "stream_options": {
                         "include_usage": True
                     },
-                    "max_tokens": 1000,
-                    "stop": ["\n\n", "User:", "AI:"]
+                    "max_tokens": 1500,  # Increased max tokens
+                    "stop": ["\n", "User:", "AI:"]  # Adjusted stop parameter
                 }
                 ,
 
