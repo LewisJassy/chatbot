@@ -1,48 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   LogOut,
-  Search,
   User,
-  Bell,
   Settings,
-  HelpCircle,
   X,
-  ChevronDown,
   Edit,
 } from "lucide-react";
 import PropTypes from 'prop-types';
+import { saveChatHistory, loadChatHistory } from './utils/axios';
 
 export default function Sidebar({
   sidebarOpen,
   setSidebarOpen,
   startNewChat,
-  model,
-  setModel,
 }) {
-  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
-  const modelOptions = [
-    { name: "free", label: "Free" },
-    { name: "sourceplus", label: "Source Plus" },
-  ];
-  const chatHistory = [
-    "Chat 1",
-    // Add more chat history items here
-  ];
+  const [chatHistory, setChatHistory] = useState([]);
+
+  useEffect(() => {
+    const history = loadChatHistory();
+    if (history) {
+      setChatHistory(history);
+    }
+  }, []);
 
   const handleLogout = (label) => {
     if (label === "Logout") {
       localStorage.clear();
     }
-    
+  };
+
+  const handleNewChat = () => {
+    startNewChat();
+    const newChat = `Chat ${chatHistory.length + 1}`;
+    const updatedHistory = [...chatHistory, newChat];
+    setChatHistory(updatedHistory);
+    saveChatHistory(updatedHistory);
   };
 
   Sidebar.propTypes = {
     sidebarOpen: PropTypes.bool.isRequired,
     setSidebarOpen: PropTypes.func.isRequired,
     startNewChat: PropTypes.func.isRequired,
-    model: PropTypes.string.isRequired,
-    setModel: PropTypes.func.isRequired,
   };
 
   return (
@@ -65,7 +64,7 @@ export default function Sidebar({
       <div className="flex flex-col h-[calc(100%-64px)] p-2">
         {/* New Chat Button */}
         <button
-          onClick={startNewChat}
+          onClick={handleNewChat}
           className="flex items-center gap-3 w-full p-3 mb-3 rounded-lg hover:bg-gray-700/50 text-white border border-gray-700/50 transition-colors duration-200"
         >
           <Plus className="w-5 h-5" />
@@ -92,8 +91,7 @@ export default function Sidebar({
 
         {/* Bottom Menu */}
         <div className="border-t border-gray-700/50 pt-2 mt-2 space-y-2">
-          {[
-            { icon: <User className="w-5 h-5" />, label: "Profile" },
+          {[{ icon: <User className="w-5 h-5" />, label: "Profile" },
             { icon: <Settings className="w-5 h-5" />, label: "Settings" },
             { icon: <LogOut className="w-5 h-5" />, label: "Logout" },
           ].map((item, index) => (
