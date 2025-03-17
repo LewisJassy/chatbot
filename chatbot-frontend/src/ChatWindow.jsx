@@ -4,11 +4,18 @@ import { Paperclip, Mic, Image, Send, Edit, Copy } from "lucide-react";
 import OpenIcon from "./assets/osidebar.png";
 import CloseIcon from "./assets/csidebar.png";
 
-export default function ChatWindow({ sidebarOpen, setSidebarOpen, newChat, messages, setMessages, inputMessage, setInputMessage, handleSubmit, messagesEndRef }) {
-
-  const [inputHeight, setInputHeight] = useState("auto"); // Dynamic height for input
-
-
+export default function ChatWindow({
+  sidebarOpen,
+  setSidebarOpen,
+  newChat,
+  messages,
+  setMessages,
+  inputMessage,
+  setInputMessage,
+  handleSubmit,
+  messagesEndRef,
+}) {
+  const [inputHeight, setInputHeight] = useState("auto");
 
   const handleInputChange = (e) => {
     setInputMessage(e.target.value);
@@ -42,108 +49,110 @@ export default function ChatWindow({ sidebarOpen, setSidebarOpen, newChat, messa
   }, [messages, messagesEndRef]);
 
   return (
-    <div className={`flex-1 flex flex-col w-full h-full ${sidebarOpen ? "pl-5" : ""}`}>
+    <div className={`flex flex-col w-full h-screen bg-[#343541] ${
+      sidebarOpen ? "md:ml-[280px]" : ""
+    } transition-all duration-300`}>
       {/* Header */}
-      <header className="p-4 bg-gray-800 flex justify-between items-center border-b border-gray-700 text-white">
-        <div className="flex items-center space-x-3">
-          {/* Sidebar Toggle Icon */}
-          <img
-            src={sidebarOpen ? CloseIcon : OpenIcon}
-            alt={sidebarOpen ? "Close Sidebar" : "Open Sidebar"}
-            className="w-7 h-7 cursor-pointer"
+      <header className="sticky top-0 z-10 bg-[#343541]/80 backdrop-blur-sm border-b border-gray-700/50 p-2">
+        <div className="flex items-center justify-between max-w-3xl mx-auto px-4">
+          <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
-          <h1 className="text-lg font-semibold">Deepsource AI</h1>
+            className="p-2 hover:bg-gray-700/50 rounded-md transition-colors md:hidden"
+          >
+            <img
+              src={sidebarOpen ? "/src/assets/csidebar.png" : "/src/assets/osidebar.png"}
+              alt="Toggle Sidebar"
+              className="w-6 h-6"
+            />
+          </button>
+          <h1 className="text-lg font-medium text-gray-200">DeepSource AI</h1>
+          <div className="w-10" /> {/* Spacer for alignment */}
         </div>
       </header>
 
-      {/* Message List */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-900 text-white">
-        {messages.length === 0 ? (
-          <div className="bg-gray-800 p-6 rounded-lg text-center text-sm text-gray-400">
-            Start a new chat to begin the conversation!
-          </div>
-        ) : (
-          messages.map((msg, i) => (
-            <div
-              key={i}
-
-
-              className={`p-3 my-2 rounded-lg max-w-full transition-all duration-300 ${
-                msg.isUser
-                  ? "bg-gray-800 text-white self-end"
-                  : "bg-gray-700 text-gray-300 self-start"
-
-              }`}
-              style={{
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-                width: "fit-content",
-                maxWidth: "90%",
-              }}
-            >
-              <div className="flex items-center justify-between">
-                {/* Message Content */}
-                <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  {msg.isUser && (
-                    <Edit
-                      className="w-4 h-4 text-gray-400 cursor-pointer hover:text-white"
-                      onClick={() => console.log("Edit message:", i)}
-                      aria-label="Edit message"
-                    />
-                  )}
-                  {!msg.isUser && (
-                    <Copy
-                      className="w-4 h-4 text-gray-400 cursor-pointer hover:text-white"
-                      onClick={() => navigator.clipboard.writeText(msg.text)}
-                      aria-label="Copy message"
-                    />
-                  )}
-                </div>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 py-6">
+          {messages.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-3">
+                <h2 className="text-2xl font-medium text-gray-300">Welcome to DeepSource AI</h2>
+                <p className="text-gray-400">Start a new chat to begin the conversation!</p>
               </div>
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
+          ) : (
+            <div className="space-y-6">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.isUser ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`group relative max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+                      ${
+                        msg.isUser
+                          ? "bg-[#1a7f64] text-white"
+                          : "bg-[#444654] text-gray-200"
+                      }`}
+                  >
+                    <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                    <div className="absolute right-0 top-0 hidden -mr-4 mt-2 group-hover:flex items-center gap-1">
+                      {msg.isUser ? (
+                        <Edit className="w-4 h-4 text-gray-400 hover:text-white cursor-pointer" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-400 hover:text-white cursor-pointer" 
+                              onClick={() => navigator.clipboard.writeText(msg.text)} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="p-4 bg-gray-900"
-      >
-        <div className="flex items-end space-x-3">
-          <div className="flex items-center space-x-2">
-            <Paperclip className="w-5 h-5 text-gray-400 cursor-pointer hover:text-white" />
-            <Mic className="w-5 h-5 text-gray-400 cursor-pointer hover:text-white" />
-            <Image className="w-5 h-5 text-gray-400 cursor-pointer hover:text-white" />
+      {/* Floating Input Bar */}
+      <div className="sticky bottom-0 bg-[#343541]/80 backdrop-blur-sm px-4 py-4">
+        <form
+          onSubmit={handleSubmit}
+          className="relative max-w-3xl mx-auto"
+        >
+          <div className="relative flex items-end rounded-xl border border-gray-700/50 bg-[#40414f] shadow-lg">
+            <div className="absolute left-3 bottom-3 flex items-center gap-2">
+              <Paperclip className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition-colors" />
+              <Mic className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition-colors" />
+              <Image className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition-colors" />
+            </div>
+            <textarea
+              value={inputMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Message DeepSource AI..."
+              className="w-full pl-24 pr-14 py-3 bg-transparent text-white placeholder-gray-400 focus:outline-none resize-none overflow-hidden"
+              style={{
+                height: inputHeight,
+                maxHeight: "200px",
+                minHeight: "46px"
+              }}
+              rows={1}
+            />
+            <button
+              type="submit"
+              disabled={!inputMessage.trim()}
+              className="absolute right-2 bottom-2 p-1.5 rounded-lg bg-[#1a7f64] text-white opacity-90 hover:opacity-100 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-5 h-5" />
+            </button>
           </div>
-          <textarea
-            value={inputMessage}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            className="flex-grow p-2 bg-gray-700 rounded-lg border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none overflow-hidden"
-            style={{
-              height: inputHeight,
-              maxHeight: "200px",
-            }}
-            rows={1}
-          />
-          <button
-            type="submit"
-            className="p-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Send className="w-5 h-5 text-white" />
-          </button>
+        </form>
+        <div className="max-w-3xl mx-auto mt-2">
+          <p className="text-xs text-center text-gray-400">
+            DeepSource can make mistakes. Verify the information.
+          </p>
         </div>
-      </form>
-
-
-      {/* Footer */}
-      <footer className="p-2 bg-gray-900 text-xs text-gray-400 text-center">
-
-        Deepsource can make mistakes. Verify the information.
-      </footer>
+      </div>
     </div>
   );
 }

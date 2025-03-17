@@ -206,6 +206,24 @@ class ChatHistoryView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        try:
+            chat_history = ChatHistory.objects.filter(user=request.user).order_by('-timestamp')
+            history_data = [
+                {
+                    'message': entry.message,
+                    'timestamp': entry.timestamp.isoformat()
+                }
+                for entry in chat_history
+            ]
+            return Response({'status': 'success', 'history': history_data})
+        except Exception as e:
+            logger.error(f"Chat history retrieval error: {str(e)}")
+            return Response(
+                {'error': 'An error occurred while retrieving chat history. Please try again later.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     def post(self, request):
         try:
             message = request.data.get('message')

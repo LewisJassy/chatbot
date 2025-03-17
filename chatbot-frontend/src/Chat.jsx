@@ -4,15 +4,30 @@ import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
 
 export default function Chat() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [newChat, setNewChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef(null);
 
+  // Handle window resize for responsive sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(true);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const startNewChat = () => {
     setNewChat(true);
+    setMessages([]);
     setTimeout(() => setNewChat(false), 0);
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -27,7 +42,7 @@ export default function Chat() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Please log in to obtain a token.");
+      alert("Please log in to continue.");
       return;
     }
 
@@ -48,42 +63,32 @@ export default function Chat() {
       const botMessage = { text: response.data.bot_response, isUser: false };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
-      if (err.response && err.response.status === 401) {
-        alert("Unauthorized. Please log in again.");
+      if (err.response?.status === 401) {
+        alert("Session expired. Please log in again.");
+      } else {
+        console.error("Error communicating with the backend:", err);
       }
-      console.error("Error communicating with the backend", err);
     }
   };
 
-  const chatAreaStyle = {
-    flexGrow: 1,
-    display: "flex",
-    flexDirection: "column",
-    height: "100vh",
-    marginLeft: sidebarOpen ? "260px" : "0",
-    transition: "margin-left 0.3s ease",
-    overflow: "hidden",
-  };
-
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden bg-[#343541]">
       <Sidebar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         startNewChat={startNewChat}
       />
-      <div style={chatAreaStyle}>
-        <ChatWindow
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          newChat={newChat}
-          messages={messages}
-          inputMessage={inputMessage}
-          setInputMessage={setInputMessage}
-          handleSubmit={handleSubmit}
-          messagesEndRef={messagesEndRef}
-        />
-      </div>
+      <ChatWindow
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        newChat={newChat}
+        messages={messages}
+        setMessages={setMessages}
+        inputMessage={inputMessage}
+        setInputMessage={setInputMessage}
+        handleSubmit={handleSubmit}
+        messagesEndRef={messagesEndRef}
+      />
     </div>
   );
 }
