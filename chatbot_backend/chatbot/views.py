@@ -149,7 +149,7 @@ class ChatbotView(APIView):
                 }
                 ,
 
-                model="deepseek/deepseek-chat",
+                model="deepseek/deepseek-chat:free",
                 messages=[
                     {
                         "role": "user",
