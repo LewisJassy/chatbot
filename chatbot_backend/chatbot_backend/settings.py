@@ -146,12 +146,8 @@ WSGI_APPLICATION = 'chatbot_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-            'ENGINE': 'djongo',
-            'NAME': 'chatbot',
-            'ENFORCE_SCHEMA': False,
-            'CLIENT': {
-                'host': 'mongodb://localhost:27017',
-            }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
