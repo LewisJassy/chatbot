@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: chatbot-backend
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn chatbot_backend.wsgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: chatbot_backend.settings
+      - key: SECRET_KEY
+        value: 'django-insecure-#w-75*=bjt3%x6%-u!g7$eoruayis6auwdf%!s^n5&fbqekr))'
+      - key: ALLOWED_HOSTS
+        value: 'chatbot.onrender.com'
