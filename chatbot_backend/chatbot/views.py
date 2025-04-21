@@ -1,8 +1,6 @@
 import json
 import os
 import logging
-# import uuid
-# import secrets
 from datetime import datetime
 from openai import OpenAI
 from django.http import JsonResponse
@@ -12,28 +10,22 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-# from rest_framework.authentication import BaseAuthentication, TokenAuthentication
-# from rest_framework.exceptions import  AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from dotenv import load_dotenv
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
-# import User from django.contrib.auth.models
 from .preprocessing import preprocess_text
 from .models import ChatHistory
 
-# Load environment variables
 load_dotenv()
 
 
-# Initialize the OpenAI API
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv('OPENROUTER_API_KEY'),
 )
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
 class UserRegistrationView(APIView):
@@ -124,10 +116,10 @@ class ChatbotView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Preprocess the user input
+
             preprocessed_input = preprocess_text(user_input)
 
-            # Generate response with DeepSeek
+            
             completion = client.chat.completions.create(
                 extra_headers={
                     "HTTP-Referer": "http://127.0.0.1:8000/chatbot/",
@@ -144,17 +136,15 @@ class ChatbotView(APIView):
                     "stream_options": {
                         "include_usage": True
                     },
-                    "max_tokens": 1500,  # Increased max tokens
-                    "stop": ["\n", "User:", "AI:"]  # Adjusted stop parameter
+                    "max_tokens": 1000,
+                    "stop": ["User:", "AI:"]
                 }
                 ,
 
-                model="deepseek/deepseek-chat:free",
+                model="anthropic/claude-3.7-sonnet",
                 messages=[
-                    {
-                        "role": "user",
-                        "content": preprocessed_input
-                    }
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": preprocessed_input}
                 ]
             )
 
