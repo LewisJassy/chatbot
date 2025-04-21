@@ -106,10 +106,11 @@ class ChatbotView(APIView):
     """Handle authenticated chatbot interactions"""
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
-
     def post(self, request):
         try:
             user_input = request.data.get('message', '').strip()
+            role = request.data.get("role", "assistant").strip().lower()
+            logger.debug(f"User input: {user_input}, Role: {role}")
             if not user_input:
                 return Response(
                     {'error': 'Message is required'},
@@ -118,6 +119,13 @@ class ChatbotView(APIView):
 
 
             preprocessed_input = preprocess_text(user_input)
+
+            system_message = {
+                "assistant": "You are a helpful assistant.",
+                "software engineer": "You are a software engineer. Provide detailed technical explanations and code examples.",
+                "teacher": "You are a teacher. Explain concepts in a simple and beginner-friendly manner.",
+                "advisor": "You are an advisor. Provide thoughtful advice tailored to the user's needs."
+            }.get(role, "You are a helpful assistant.")
 
             
             completion = client.chat.completions.create(
@@ -143,7 +151,7 @@ class ChatbotView(APIView):
 
                 model="anthropic/claude-3.7-sonnet",
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "system", "content": system_message},
                     {"role": "user", "content": preprocessed_input}
                 ]
             )
@@ -158,13 +166,13 @@ class ChatbotView(APIView):
             
 
 
-            # Log interaction
             if request.user.is_authenticated:
                 self._log_interaction(request.user, user_input, bot_response)
 
             return Response({
                 'user_message': user_input,
                 'bot_response': bot_response,
+                'role': role,
                 'timestamp': datetime.now().isoformat()
             })
 
