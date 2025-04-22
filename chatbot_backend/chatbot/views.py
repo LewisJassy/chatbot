@@ -2,7 +2,6 @@ import json
 import os
 import logging
 from datetime import datetime
-from openai import OpenAI
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from django.core.cache import cache
@@ -18,13 +17,13 @@ from .serializers import UserRegistrationSerializer, UserLoginSerializer
 from .preprocessing import preprocess_text
 from .models import ChatHistory
 
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
 load_dotenv()
 
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv('OPENROUTER_API_KEY'),
-)
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ class ChatbotView(APIView):
         try:
             user_input = request.data.get('message', '').strip()
             role = request.data.get("role", "assistant").strip().lower()
-            logger.debug(f"User input: {user_input}, Role: {role}")
+            stream = request.data.get("stream", False)
             if not user_input:
                 return Response(
                     {'error': 'Message is required'},
@@ -126,43 +125,46 @@ class ChatbotView(APIView):
                 "advisor": "You are an advisor with broad expertise. Provide thoughtful and direct advice tailored to the user's needs across various domains including career, education, and personal development. Always respond in plain text without using markdown formatting unless specifically requested."
             }.get(role, "You are a helpful assistant who provides direct answers to questions without unnecessary disclaimers. You respond in plain text without using markdown formatting unless specifically requested.")
 
+            prompt = ChatPromptTemplate.from_messages([
+                SystemMessagePromptTemplate.from_template(system_message),
+                HumanMessagePromptTemplate.from_template("{input}")
+            ])
+
             
-            completion = client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "http://127.0.0.1:8000/chatbot/",
-                    "X-Title": "chatbot",
-                },
-                extra_body = {
-                    "top_p": 0.85,
-                    "temperature": 0.6,
-                    "frequency_penalty": 0.3,
-                    "presence_penalty": 0.6,
-                    "repetition_penalty": 1.1,
-                    "top_k": 50,
-                    "stream": False,
-                    "stream_options": {
-                        "include_usage": True
-                    },
-                    "max_tokens": 1000,
-                    "stop": ["User:", "AI:"]
-                }
-                ,
-
+            model = ChatOpenAI(
                 model="anthropic/claude-3.7-sonnet",
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": preprocessed_input}
-                ]
+                openai_api_base = "https://openrouter.ai/api/v1",
+                openai_api_key = os.getenv('OPENROUTER_API_KEY'),
+                temperature=0.6,
+                max_tokens=800,
+                streaming=stream,
+                top_p = 0.85,
+                frequency_penalty= 0.3,
+                presence_penalty= 0.6,
+                stop= ["User:", "AI:"],
             )
+ 
+            chain = prompt | model | StrOutputParser()
 
-            if not completion.choices:
+            bot_response = ""
+            if stream:
+                for chunk in chain.stream({"input": preprocessed_input}):
+                    bot_response += chunk
+            else:
+                try:
+                    bot_response = chain.invoke({"input": preprocessed_input})
+                except Exception as e:
+                    logger.error(f"Model invocation error: {str(e)}")
+                    return Response(
+                        {'error': 'Failed to get response from chatbot'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+
+            if not bot_response.strip():
                 return Response(
-                    {'error': 'No response from the chatbot'},
+                    {'error': 'Empty response from the chatbot'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-
-            bot_response = completion.choices[0].message.content.strip()
-            
 
 
             if request.user.is_authenticated:
@@ -180,7 +182,8 @@ class ChatbotView(APIView):
                 {'error': 'Invalid JSON format'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception:
+        except Exception as e:
+            logger.exception("Unexpected error in chatbot view: %s", str(e))
             return Response(
                 {'error': 'Internal server error'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
