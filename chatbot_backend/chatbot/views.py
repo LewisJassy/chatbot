@@ -118,12 +118,8 @@ class ChatbotView(APIView):
 
 
             preprocessed_input = preprocess_text(user_input)
-            system_message = {
-                "assistant": "You are a helpful, creative, and versatile assistant. You are designed to provide information and answer questions on a wide range of topics including history, science, technology, arts, and general knowledge. You can provide direct answers to questions without unnecessary disclaimers. Always respond in plain text without using markdown formatting unless specifically requested. You should be factual, educational, and informative while maintaining a friendly and helpful tone.",
-                "software engineer": "You are a software engineer with extensive knowledge of programming languages, frameworks, and best practices. Provide detailed technical explanations and code examples without excessive disclaimers. Always respond in plain text without using markdown formatting unless specifically requested for code blocks.",
-                "teacher": "You are a teacher with deep knowledge across various subjects. Explain concepts in a simple and beginner-friendly manner with relevant examples and historical context when appropriate. Always respond in plain text without using markdown formatting unless specifically requested.",
-                "advisor": "You are an advisor with broad expertise. Provide thoughtful and direct advice tailored to the user's needs across various domains including career, education, and personal development. Always respond in plain text without using markdown formatting unless specifically requested."
-            }.get(role, "You are a helpful assistant who provides direct answers to questions without unnecessary disclaimers. You respond in plain text without using markdown formatting unless specifically requested.")
+            # Use a concise system prompt for all roles
+            system_message = "You are a helpful and knowledgeable assistant. Answer questions clearly and directly in plain text."
 
             prompt = ChatPromptTemplate.from_messages([
                 SystemMessagePromptTemplate.from_template(system_message),
@@ -132,7 +128,7 @@ class ChatbotView(APIView):
 
             
             model = ChatOpenAI(
-                model="anthropic/claude-3.7-sonnet",
+                model="mistralai/mixtral-8x7b-instruct",
                 openai_api_base = "https://openrouter.ai/api/v1",
                 openai_api_key = os.getenv('OPENROUTER_API_KEY'),
                 temperature=0.6,
