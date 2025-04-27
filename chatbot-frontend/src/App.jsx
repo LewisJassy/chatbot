@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import LoginRegister from "./LoginRegister";
 import Chat from "./Chat";
-import LoadingScreen from "./LoadingScreen";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -16,28 +14,22 @@ export default function App() {
   }, []);
 
   const handleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsAuthenticated(true);
-    }, 9000); // Simulate a delay for loading animation
+    setIsAuthenticated(true);
   };
 
   return (
     <Router>
       <AppRoutes
         isAuthenticated={isAuthenticated}
-        isLoading={isLoading}
         handleLogin={handleLogin}
       />
     </Router>
   );
 }
 
-
 import PropTypes from 'prop-types';
 
-function AppRoutes({ isAuthenticated, isLoading, handleLogin }) {
+function AppRoutes({ isAuthenticated, handleLogin }) {
   const location = useLocation();
 
   useEffect(() => {
@@ -61,11 +53,7 @@ function AppRoutes({ isAuthenticated, isLoading, handleLogin }) {
       <Route
         path="/login"
         element={
-          isLoading ? (
-            <LoadingScreen />
-          ) : (
-            <LoginRegister onLogin={handleLogin} />
-          )
+          <LoginRegister onLogin={handleLogin} />
         }
       />
       <Route
@@ -84,6 +72,5 @@ function AppRoutes({ isAuthenticated, isLoading, handleLogin }) {
 
 AppRoutes.propTypes = {
   isAuthenticated: PropTypes.bool.isRequired,
-  isLoading: PropTypes.bool.isRequired,
   handleLogin: PropTypes.func.isRequired,
-}
+};
