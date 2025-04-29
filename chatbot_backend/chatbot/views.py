@@ -68,7 +68,7 @@ class UserLoginView(APIView):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        remember_me = request.date.get('remember_me', False)
+        remember_me = request.data.get('remember_me', False)
 
         response_data = ({
             'access_token': access_token,
