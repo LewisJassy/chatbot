@@ -66,7 +66,7 @@ export default function ChatWindow({
         >
           <img src={sidebarOpen ? CloseIcon : OpenIcon} alt="Toggle Sidebar" className="w-6 h-6" />
         </button>
-        <h1 className="text-xl font-semibold">ChatGPT Clone</h1>
+        <h1 className="text-xl font-semibold">DeepSource AI</h1>
         <div className="w-6" />
       </header>
 
@@ -75,7 +75,7 @@ export default function ChatWindow({
         <div className="max-w-2xl mx-auto px-6 py-8">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 mt-20">
-              <h2 className="text-2xl font-medium mb-2">Welcome to ChatGPT</h2>
+              <h2 className="text-2xl font-medium mb-2">Welcome to DeepSource</h2>
               <p>Ask me anything!</p>
             </div>
           ) : (
