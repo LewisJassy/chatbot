@@ -66,14 +66,26 @@ export default function LoginRegister({ onLogin }) {
         );
         
         if (response.data) {
-          localStorage.setItem("token", response.data.access_token);
-          localStorage.setItem("user_email", email);
-          
-          // If you have user's name in response, store that too
-          if (response.data.name) {
-            localStorage.setItem("user_name", response.data.name);
+          // Store token based on rememberMe
+          if (rememberMe) {
+            localStorage.setItem("token", response.data.access_token);
+            localStorage.setItem("user_email", email);
+            if (response.data.name) {
+              localStorage.setItem("user_name", response.data.name);
+            }
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("user_email");
+            sessionStorage.removeItem("user_name");
+          } else {
+            sessionStorage.setItem("token", response.data.access_token);
+            sessionStorage.setItem("user_email", email);
+            if (response.data.name) {
+              sessionStorage.setItem("user_name", response.data.name);
+            }
+            localStorage.removeItem("token");
+            localStorage.removeItem("user_email");
+            localStorage.removeItem("user_name");
           }
-          
           setIsSuccess(true);
           setTimeout(() => {
             onLogin({ 

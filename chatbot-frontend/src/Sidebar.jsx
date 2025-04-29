@@ -28,6 +28,7 @@ export default function Sidebar({
   const handleLogout = (label) => {
     if (label === "Logout") {
       localStorage.clear();
+      sessionStorage.clear();
       navigate("/login");
     }
   };
