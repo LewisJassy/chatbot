@@ -36,7 +36,9 @@ function AppRoutes({ isAuthenticated, handleLogin }) {
     localStorage.setItem('currentPath', location.pathname);
   }, [location.pathname]);
 
-  const currentPath = localStorage.getItem('currentPath') || '/';
+  const currentPath = isAuthenticated
+    ? (localStorage.getItem('currentPath') || '/')
+    : '/login';
 
   return (
     <Routes>
