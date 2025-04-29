@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import LoginRegister from "./LoginRegister";
 import Chat from "./Chat";
+import LandingPage from "./LandingPage";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -36,21 +37,12 @@ function AppRoutes({ isAuthenticated, handleLogin }) {
     localStorage.setItem('currentPath', location.pathname);
   }, [location.pathname]);
 
-  const currentPath = isAuthenticated
-    ? (localStorage.getItem('currentPath') || '/')
-    : '/login';
 
   return (
     <Routes>
       <Route
         path="/"
-        element={
-          isAuthenticated ? (
-            <Navigate to={currentPath} replace />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
+        element={<LandingPage />}
       />
       <Route
         path="/login"
@@ -68,6 +60,17 @@ function AppRoutes({ isAuthenticated, handleLogin }) {
           )
         }
       />
+      {/* Optionally, redirect authenticated users from "/" to "/chat" */}
+      {/* <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <Navigate to="/chat" replace />
+          ) : (
+            <LandingPage />
+          )
+        }
+      /> */}
     </Routes>
   );
 }

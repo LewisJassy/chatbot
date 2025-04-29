@@ -88,7 +88,7 @@ class UserLoginView(APIView):
                     max_age=timedelta(days=30).total_seconds()
                 )
         else:
-            response.set_coolie(
+            response.set_cookie(
                     'refresh_token',
                     refresh_token,
                     httponly=True,

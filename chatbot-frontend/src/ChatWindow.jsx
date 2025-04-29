@@ -31,14 +31,6 @@ export default function ChatWindow({
     }
   };
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (inputMessage.trim()) {
-      setMessages([...messages, { text: inputMessage, isUser: true }]);
-      setInputMessage("");
-      setInputHeight("auto");
-    }
-  };
 
   useEffect(() => {
     if (newChat) setMessages([]);
@@ -60,7 +52,7 @@ export default function ChatWindow({
             className="p-2 hover:bg-gray-700/50 rounded-md transition-colors md:hidden"
           >
             <img
-              src={sidebarOpen ? "/src/assets/csidebar.png" : "/src/assets/osidebar.png"}
+              src={sidebarOpen ? CloseIcon : OpenIcon}
               alt="Toggle Sidebar"
               className="w-6 h-6"
             />

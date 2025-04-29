@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import PropTypes from 'prop-types';
 import { saveChatHistory, loadChatHistory } from './utils/axios';
+import { useNavigate } from "react-router-dom";
 
 export default function Sidebar({
   sidebarOpen,
@@ -16,6 +17,7 @@ export default function Sidebar({
   startNewChat,
 }) {
   const [chatHistory, setChatHistory] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const history = loadChatHistory();
@@ -27,6 +29,7 @@ export default function Sidebar({
   const handleLogout = (label) => {
     if (label === "Logout") {
       localStorage.clear();
+      navigate("/login");
     }
   };
 
@@ -50,7 +53,6 @@ export default function Sidebar({
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0 md:${sidebarOpen ? "w-[280px]" : "w-0"}`}
     >
-      {/* Header Section */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
         <span className="text-xl font-medium">DeepSource AI</span>
         <button
@@ -62,7 +64,6 @@ export default function Sidebar({
       </div>
 
       <div className="flex flex-col h-[calc(100%-64px)] p-2">
-        {/* New Chat Button */}
         <button
           onClick={handleNewChat}
           className="flex items-center gap-3 w-full p-3 mb-3 rounded-lg hover:bg-gray-700/50 text-white border border-gray-700/50 transition-colors duration-200"
@@ -89,7 +90,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Bottom Menu */}
         <div className="border-t border-gray-700/50 pt-2 mt-2 space-y-2">
           {[{ icon: <User className="w-5 h-5" />, label: "Profile" },
             { icon: <Settings className="w-5 h-5" />, label: "Settings" },
