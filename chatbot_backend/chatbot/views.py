@@ -1,7 +1,7 @@
 import json
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from django.core.cache import cache
@@ -68,12 +68,35 @@ class UserLoginView(APIView):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
-        return Response({
+        remember_me = request.date.get('remember_me', False)
+
+        response_data = ({
             'access_token': access_token,
             'refresh_token': refresh_token,
             'user_id': user.pk,
             'email': user.email
         })
+        response = Response(response_data)
+
+        if remember_me:
+            response.set_cookie(
+                    'refresh_token',
+                    refresh_token,
+                    httponly=True,
+                    secure=True,
+                    samesite='Lax',
+                    max_age=timedelta(days=30).total_seconds()
+                )
+        else:
+            response.set_coolie(
+                    'refresh_token',
+                    refresh_token,
+                    httponly=True,
+                    secure=True,
+                    samesite='Lax',
+                    max_age=timedelta(days=1).total_seconds()
+                    )
+        return response
 
 
 class UserLogoutView(APIView):
