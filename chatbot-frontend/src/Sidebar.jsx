@@ -20,10 +20,9 @@ export default function Sidebar({
   const navigate = useNavigate();
 
   useEffect(() => {
-    const history = loadChatHistory();
-    if (history) {
-      setChatHistory(history);
-    }
+    let history = loadChatHistory();
+    if (!Array.isArray(history)) history = [];
+    setChatHistory(history);
   }, []);
 
   const handleLogout = (label) => {
@@ -80,7 +79,7 @@ export default function Sidebar({
                 key={index}
                 className="group p-3 rounded-lg cursor-pointer hover:bg-gray-700/50 transition-colors duration-200 flex items-center justify-between"
               >
-                <span className="truncate">{chat}</span>
+                <span className="truncate">{typeof chat === "string" ? chat : "Untitled Chat"}</span>
                 <div className="hidden group-hover:flex items-center gap-2">
                   <Edit className="w-4 h-4 text-gray-400 hover:text-white" />
                   <X className="w-4 h-4 text-gray-400 hover:text-white" />
