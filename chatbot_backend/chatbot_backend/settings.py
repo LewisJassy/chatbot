@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-#w-75*=bjt3%x6%-u!g7$eoruayis6auwdf%!s^n5&fbqekr))'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'https://chatbot-9s5v.onrender.com',
@@ -33,7 +33,8 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'http://localhost:3000',
     'lewisnjaci.tech',
-    'www.lewisnjaci.tech'
+    'www.lewisnjaci.tech',
+    '*'
 ]
 
 APPEND_SLASH=False
