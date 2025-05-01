@@ -6,8 +6,6 @@ yarn-error.log
 .pnpm-debug.log
 
 # Build files
-dist/
-build/
 coverage/
 .coverage/
 
