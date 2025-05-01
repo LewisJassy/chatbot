@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  backend:
+    build: .
+    container_name: chatbot_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./chatbot/.env
+    environment:
+      - DATABASE_URL=sqlite:///db.sqlite3
+    volumes:
+      - .:/app
+    command: sh -c "python manage.py migrate && gunicorn chatbot_backend.wsgi:application --bind 0.0.0.0:8000"
+    restart: unless-stopped
