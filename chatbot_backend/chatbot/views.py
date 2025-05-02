@@ -272,9 +272,5 @@ class ChatHistoryView(APIView):
 
 
 def api_home(request):
-    cache_info = {
-        'cache_engine': 'Redis',
-        'cache_status': cache.client.get_client().ping(),
-        'cache_keys': cache.client.get_client().dbsize()
-    }
-    return JsonResponse({'message': 'Welcome to the chatbot API!', 'cache': cache_info})
+    
+    return JsonResponse({'message': 'Welcome to the chatbot API!'})
