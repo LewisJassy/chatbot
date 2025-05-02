@@ -10,7 +10,7 @@ RUN npm run build  # Outputs to /app/dist
 FROM node:20-alpine
 WORKDIR /app
 # Install http-server globally (better for Vite)
-RUN npm install -g http-server
+RUN npm install -g serve
 COPY --from=builder /app/dist ./dist
 
-CMD http-server dist -p 3000 --proxy http://localhost:3000?
+CMD serve -s dist -l 3000
