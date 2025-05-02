@@ -1,24 +1,14 @@
-FROM node:20-alpine
-
+# Stage 1: Build the app
+FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install dependencies
+COPY package*.json ./
 RUN npm ci
-
-# Copy app source
 COPY . .
+RUN npm run build 
 
-# Build the app
-RUN npm run build
-
-# Install 'serve' to serve static files
+# Stage 2: Serve the app
+FROM node:20-alpine
+WORKDIR /app
 RUN npm install -g serve
-
-# Expose port
-EXPOSE 3000
-
-# Serve the build directory
-CMD ["serve", "-s", "dist", "-l", "3000"]
+COPY --from=builder /app/build ./build
+CMD ["serve", "-s", "build", "-l", "3000"]  # Serve the built files
