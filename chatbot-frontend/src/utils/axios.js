@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const apiUrl = "http://localhost:8000/";
+const apiUrl = "https://chatbot-mohw.onrender.com";
 
 const instance = axios.create({
   baseURL: apiUrl,

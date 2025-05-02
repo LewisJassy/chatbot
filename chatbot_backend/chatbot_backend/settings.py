@@ -34,7 +34,8 @@ ALLOWED_HOSTS = [
     'http://localhost:3000',
     'lewisnjaci.tech',
     'www.lewisnjaci.tech',
-    '*'
+    '*',
+    'https://chatbot-mohw.onrender.com'
 ]
 
 APPEND_SLASH=False
