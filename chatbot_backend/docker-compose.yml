@@ -13,3 +13,8 @@ services:
       - .:/app
     command: sh -c "python manage.py migrate && gunicorn chatbot_backend.wsgi:application --bind 0.0.0.0:8000"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
