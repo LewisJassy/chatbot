@@ -1,14 +1,16 @@
-# Stage 1: Build the app
+# Stage 1: Build
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build 
+RUN npm run build  # Outputs to /app/dist
 
-# Stage 2: Serve the app
+# Stage 2: Serve
 FROM node:20-alpine
 WORKDIR /app
-RUN npm install -g serve
+# Install http-server globally (better for Vite)
+RUN npm install -g http-server
 COPY --from=builder /app/dist ./dist
-CMD serve -s build -l 3000
+
+CMD http-server dist -p 3000 --proxy http://localhost:3000?
