@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../../.env
+      - chatbot/.env
     environment:
       - DATABASE_URL=sqlite:///db.sqlite3
     volumes:
