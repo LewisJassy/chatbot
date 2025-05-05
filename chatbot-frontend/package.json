@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@datadog/browser-rum": "^6.6.4",
+    "@datadog/browser-rum-react": "^6.6.4",
     "@react-oauth/google": "^0.12.1",
     "@reduxjs/toolkit": "^2.5.1",
     "axios": "^1.7.9",
