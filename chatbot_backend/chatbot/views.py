@@ -99,7 +99,7 @@ class UserLoginView(APIView):
 
 class AuthStatusView(APIView):
     """Check if the user is authenticated"""
-    permission_classes = (IsAuthenticated)
+    permission_classes = (IsAuthenticated,)
     
     def get(self, request):
         user = request.user
