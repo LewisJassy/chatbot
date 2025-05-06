@@ -51,6 +51,13 @@ class UserRegistrationView(APIView):
 class UserLoginView(APIView):
     """Handle user login and token authentication"""
     def post(self, request):
+        """
+        Authenticates a user and returns JWT tokens upon successful login.
+        
+        Validates user credentials and, if authentication succeeds, issues access and refresh tokens.
+        Sets the refresh token as an HTTP-only cookie, with duration based on the "remember_me" flag.
+        Returns the tokens and user information in the response. Responds with appropriate errors for invalid credentials or input.
+        """
         serializer = UserLoginSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -102,6 +109,11 @@ class AuthStatusView(APIView):
     permission_classes = (IsAuthenticated)
     
     def get(self, request):
+        """
+        Returns the authentication status and user information for the current request.
+        
+        Responds with a JSON object indicating the user is authenticated, including the user's ID and email address.
+        """
         user = request.user
         return Response({
             'authenticated': True,

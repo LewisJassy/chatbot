@@ -9,6 +9,15 @@ import { loginSchema, registerSchema } from "./validation/schemas";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./components/LoadingSpinner";
 
+/**
+ * Renders a user authentication form that switches between login and registration modes based on the current URL path.
+ *
+ * The form uses schema-based validation and displays inline errors. On successful login, invokes the provided {@link onLogin} callback and navigates to the chat page. On successful registration, prompts the user to log in. If the user is already authenticated, redirects to the chat page automatically.
+ *
+ * @param {{ onLogin: function({ name: string, email: string }): void }} props - Callback to handle successful login with user information.
+ *
+ * @returns {JSX.Element} The authentication form component.
+ */
 function AuthForm({ onLogin }) {
   const navigate = useNavigate();
   const isLoginMode = window.location.pathname.includes("/login");
