@@ -1,289 +1,219 @@
-import { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import PropTypes from "prop-types";
-import { CheckCircle, ThumbsUp } from "lucide-react";
-import axios from "./utils/axios";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "react-query";
+import axios from "./utils/axios";
+import { loginSchema, registerSchema } from "./validation/schemas";
+import toast from "react-hot-toast";
+import LoadingSpinner from "./components/LoadingSpinner";
 
-export default function LoginRegister({ onLogin }) {
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState("");
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+function AuthForm({ onLogin }) {
   const navigate = useNavigate();
+  const isLoginMode = window.location.pathname.includes("/login");
+  const schema = isLoginMode ? loginSchema : registerSchema;
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      navigate("/chat");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm({
+    resolver: zodResolver(schema),
+    mode: "onBlur",
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      rememberMe: false
     }
+  });
+
+  const authMutation = useMutation(
+    (data) => axios.post(isLoginMode ? "/login" : "/register", data, { 
+      withCredentials: true 
+    }),
+    {
+      onSuccess: (response) => {
+        if (isLoginMode && response.data?.access_token) {
+          onLogin({ 
+            name: response.data.name || "User",
+            email: response.data.email 
+          });
+          toast.success("Login successful!");
+          navigate("/chat");
+        } else if (!isLoginMode && response.status === 201) {
+          toast.success("Registration successful! Please login.");
+          reset();
+          navigate("/login");
+        }
+      },
+      onError: (error) => {
+        const errorMessage = error.response?.data?.error || 
+          (isLoginMode 
+            ? "Failed to login. Please try again." 
+            : "Failed to register. Please try again.");
+        toast.error(errorMessage);
+      }
+    }
+  );
+
+  const onSubmit = handleSubmit((data) => authMutation.mutate(data));
+
+  // Check auth status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+      const response = await axios.get("/status", { 
+        withCredentials: true 
+      });
+      if (response.data.authenticated) {
+        navigate("/chat");
+      }
+      } catch (error) {
+      // Not authenticated - stay on login page
+      }
+    };
+
+    checkAuthStatus();
   }, [navigate]);
 
-  const toggleMode = () => {
-    setIsLoginMode(!isLoginMode);
-    setError("");
-    setIsSuccess(false);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    if (!isLoginMode && password !== confirmPassword) {
-      setError("Passwords do not match.");
-      setIsLoading(false);
-      return;
-    }
-
-    if (!email.trim() || !password.trim() || (!isLoginMode && !name.trim())) {
-      setError("All fields are required.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (isLoginMode) {
-        const response = await axios.post(
-          "login/",
-          {
-            email,
-            password,
-            remember_me: rememberMe,
-          },
-          {
-            headers,
-            withCredentials: true,
-          }
-        );
-        
-        if (response.data) {
-          // Store token based on rememberMe
-          if (rememberMe) {
-            localStorage.setItem("token", response.data.access_token);
-            localStorage.setItem("user_email", email);
-            if (response.data.name) {
-              localStorage.setItem("user_name", response.data.name);
-            }
-            sessionStorage.removeItem("token");
-            sessionStorage.removeItem("user_email");
-            sessionStorage.removeItem("user_name");
-          } else {
-            sessionStorage.setItem("token", response.data.access_token);
-            sessionStorage.setItem("user_email", email);
-            if (response.data.name) {
-              sessionStorage.setItem("user_name", response.data.name);
-            }
-            localStorage.removeItem("token");
-            localStorage.removeItem("user_email");
-            localStorage.removeItem("user_name");
-          }
-          setIsSuccess(true);
-          setTimeout(() => {
-            onLogin({ 
-              name: response.data.name || "User", // Fallback if name not in response
-              email 
-            });
-            navigate("/chat");
-          }, 1500);
-        }
-      } else {
-        const response = await axios.post(
-          "register/",
-          {
-            name,
-            email,
-            password,
-          },
-          {
-            headers,
-            withCredentials: true,
-          }
-        );
-        
-        if (response.status === 201) {
-          setIsSuccess(true);
-          setTimeout(() => {
-            setIsLoginMode(true);
-            setError("");
-            setName("");
-            setEmail("");
-            setPassword("");
-            setConfirmPassword("");
-          }, 1500);
-        }
-      }
-    } catch (err) {
-      console.error("Auth error:", err);
-      setError(
-        err.response?.data?.error || 
-        (isLoginMode
-          ? "Failed to login. Please try again."
-          : "Failed to register. Please try again.")
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700">
-      <div className="max-w-md w-full p-8 bg-gray-900 rounded-2xl shadow-2xl border border-gray-800">
-        <h2 className="text-2xl font-bold text-white text-center mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-700">
+      <form onSubmit={onSubmit} className="w-full max-w-md p-8 bg-gray-800 rounded-2xl shadow-lg space-y-4">
+        <h2 className="text-2xl font-bold text-center text-white mb-6">
           {isLoginMode ? "Welcome Back!" : "Create Account"}
         </h2>
 
-        {isSuccess && (
-          <div className="flex items-center justify-center mb-4 text-green-500">
-            <CheckCircle className="mr-2" />
-            <span>
-              {isLoginMode ? "Login Successful!" : "Registration Successful!"}
-            </span>
-          </div>
-        )}
-
-        {error && (
-          <div className="text-red-500 mb-4 text-center font-semibold">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {!isLoginMode && (
-            <div>
-              <label className="block text-white font-semibold mb-2 text-lg">
-                Name
-              </label>
-              <input
-                type="text"
-                placeholder="Enter your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-green-500 outline-none transition shadow-sm"
-                autoComplete="name"
-              />
-            </div>
-          )}
-
+        {!isLoginMode && (
           <div>
-            <label className="block text-white font-semibold mb-2 text-lg">
-              Email
+            <label className="block mb-2 text-sm font-medium text-white">
+              Name
             </label>
             <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-green-500 outline-none transition shadow-sm"
-              autoComplete="email"
+              {...register("name")}
+              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500"
+              aria-invalid={errors.name ? "true" : "false"}
             />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
+            )}
           </div>
+        )}
 
+        <div>
+          <label className="block mb-2 text-sm font-medium text-white">
+            Email
+          </label>
+          <input
+            type="email"
+            {...register("email")}
+            className="w-full p-3 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500"
+            aria-invalid={errors.email ? "true" : "false"}
+          />
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block mb-2 text-sm font-medium text-white">
+            Password
+          </label>
+          <input
+            type="password"
+            {...register("password")}
+            className="w-full p-3 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500"
+            aria-invalid={errors.password ? "true" : "false"}
+          />
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
+          )}
+        </div>
+
+        {!isLoginMode && (
           <div>
-            <label className="block text-white font-semibold mb-2 text-lg">
-              Password
+            <label className="block mb-2 text-sm font-medium text-white">
+              Confirm Password
             </label>
             <input
               type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-green-500 outline-none transition shadow-sm"
-              autoComplete={isLoginMode ? "current-password" : "new-password"}
+              {...register("confirmPassword")}
+              className="w-full p-3 rounded-lg bg-gray-700 text-white focus:ring-2 focus:ring-green-500"
+              aria-invalid={errors.confirmPassword ? "true" : "false"}
             />
-          </div>
-
-          {!isLoginMode && (
-            <div>
-              <label className="block text-white font-semibold mb-2 text-lg">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-3 rounded-xl bg-gray-800 text-white focus:ring-2 focus:ring-green-500 outline-none transition shadow-sm"
-                autoComplete="new-password"
-              />
-            </div>
-          )}
-
-          {isLoginMode && (
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="mr-2 accent-green-600 w-5 h-5 rounded focus:ring-green-500"
-              />
-              <label htmlFor="rememberMe" className="text-white font-medium select-none cursor-pointer">
-                Remember Me
-              </label>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full bg-gradient-to-r from-green-500 to-green-700 text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:scale-105 transition-all flex items-center justify-center gap-2 ${
-              isLoading ? "opacity-70 cursor-not-allowed" : "hover:from-green-600 hover:to-green-800"
-            }`}
-          >
-            {isLoading ? (
-              "Processing..."
-            ) : (
-              <>
-                {isLoginMode ? "Login" : "Register"}
-                <ThumbsUp className="ml-2" />
-              </>
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.confirmPassword.message}
+              </p>
             )}
-          </button>
-
-          <div className="flex items-center my-4">
-            <div className="flex-grow h-px bg-gray-700" />
-            <span className="mx-3 text-gray-400 font-medium">or</span>
-            <div className="flex-grow h-px bg-gray-700" />
-          </div>
-          
-          <button
-            type="button"
-            className="w-full bg-white text-gray-900 py-2 rounded-xl font-semibold shadow hover:bg-gray-100 transition mb-2 opacity-70 cursor-not-allowed"
-            disabled
-          >
-            Social Login (Coming Soon)
-          </button>
-        </form>
-
-        {!isSuccess && (
-          <div className="text-center mt-6">
-            <p className="text-gray-400 text-base">
-              {isLoginMode
-                ? "Don't have an account?"
-                : "Already have an account?"}{" "}
-              <button
-                onClick={toggleMode}
-                className="text-green-400 hover:underline font-semibold transition focus:outline-none"
-              >
-                {isLoginMode ? "Register" : "Login"}
-              </button>
-            </p>
           </div>
         )}
-      </div>
+
+        {isLoginMode && (
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              {...register("rememberMe")}
+              className="w-4 h-4 rounded bg-gray-700 border-gray-600 focus:ring-green-500"
+            />
+            <label htmlFor="rememberMe" className="ml-2 text-sm font-medium text-white">
+              Remember me
+            </label>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full py-3 px-4 font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 disabled:opacity-75 flex justify-center items-center"
+        >
+          {isSubmitting ? (
+            <>
+              <LoadingSpinner className="mr-2" />
+              Processing...
+            </>
+          ) : isLoginMode ? (
+            "Sign in"
+          ) : (
+            "Sign up"
+          )}
+        </button>
+
+        <div className="flex items-center my-4">
+          <div className="flex-1 border-t border-gray-600"></div>
+          <span className="mx-4 text-gray-400">or</span>
+          <div className="flex-1 border-t border-gray-600"></div>
+        </div>
+
+        <button
+          type="button"
+          disabled
+          className="w-full py-2.5 px-4 font-medium rounded-lg text-gray-900 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Social Login (Coming Soon)
+        </button>
+
+        <p className="text-sm font-light text-gray-400 text-center mt-6">
+          {isLoginMode ? "Don't have an account?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => navigate(isLoginMode ? "/register" : "/login")}
+            className="font-medium text-green-500 hover:underline focus:outline-none"
+          >
+            {isLoginMode ? "Sign up" : "Sign in"}
+          </button>
+        </p>
+      </form>
     </div>
   );
 }
 
-LoginRegister.propTypes = {
+AuthForm.propTypes = {
   onLogin: PropTypes.func.isRequired,
 };
+
+export default React.memo(AuthForm);
