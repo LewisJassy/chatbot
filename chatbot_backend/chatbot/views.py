@@ -4,7 +4,6 @@ import logging
 from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
-from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -98,6 +97,19 @@ class UserLoginView(APIView):
                     )
         return response
 
+class AuthStatusView(APIView):
+    """Check if the user is authenticated"""
+    permission_classes = (IsAuthenticated,)
+    
+    def get(self, request):
+        user = request.user
+        return Response({
+            'authenticated': True,
+            'user':{
+                'id':user.id,
+                'email':user.email
+            }
+        })
 
 class UserLogoutView(APIView):
     """Logout user and blacklist the refresh token"""
