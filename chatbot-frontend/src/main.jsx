@@ -4,8 +4,8 @@ import './index.css'
 import App from './App.jsx'
 import { QueryClient, QueryClientProvider } from 'react-query';
 
-const queryClient = new QueryClient()
-
+const queryClient =
+  window.__queryClient || (window.__queryClient = new QueryClient());
 import { datadogRum } from '@datadog/browser-rum';
 import { reactPlugin } from '@datadog/browser-rum-react';
 
