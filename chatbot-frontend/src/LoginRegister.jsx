@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -8,6 +8,7 @@ import axios from "./utils/axios";
 import { loginSchema, registerSchema } from "./validation/schemas";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./components/LoadingSpinner";
+
 
 function AuthForm({ onLogin }) {
   const navigate = useNavigate();
@@ -62,24 +63,29 @@ function AuthForm({ onLogin }) {
 
   const onSubmit = handleSubmit((data) => authMutation.mutate(data));
 
-  // Check auth status on mount
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
+const [isChecking, setIsChecking] = useState(true);
+useEffect(() => {
+  const checkAuthStatus = async () => {
+    try {
       const response = await axios.get("/status", { 
         withCredentials: true 
       });
       if (response.data.authenticated) {
         navigate("/chat");
       }
-      } catch (error) {
-      // Not authenticated - stay on login page
-      }
-    };
+    } catch (error) {
+      console.error("Auth check failed:", error.message);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
-    checkAuthStatus();
-  }, [navigate]);
-
+  checkAuthStatus();
+}, [navigate]);
+if (isChecking) {
+  return <LoadingSpinner />;
+}
+ 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-700">
       <form onSubmit={onSubmit} className="w-full max-w-md p-8 bg-gray-800 rounded-2xl shadow-lg space-y-4">
