@@ -9,6 +9,7 @@ import { loginSchema, registerSchema } from "./validation/schemas";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./components/LoadingSpinner";
 
+
 function AuthForm({ onLogin }) {
   const navigate = useNavigate();
   const isLoginMode = window.location.pathname.includes("/login");
