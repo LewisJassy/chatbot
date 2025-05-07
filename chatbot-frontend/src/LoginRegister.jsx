@@ -24,14 +24,12 @@ export default function LoginRegister({ onLogin }) {
   const navigate = useNavigate();
   const isMounted = useRef(true);
 
-  // Cleanup effect
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
   }, []);
 
-  // Check existing auth status
   const checkAuthStatus = useCallback(async () => {
     try {
       const response = await axios.get("/status/", {
@@ -128,7 +126,6 @@ export default function LoginRegister({ onLogin }) {
             onLogin({ email: formData.email.trim(), name: data.name || "User" });
             navigate("/chat");
           } else {
-            // Reset form after successful registration
             setFormData({
               name: "",
               email: "",
