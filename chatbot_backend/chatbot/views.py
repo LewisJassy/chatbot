@@ -19,12 +19,24 @@ from .models import ChatHistory
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_pinecone import PineconeVectorStore
+import pinecone
+from pinecone import ServerlessSpec
 
 load_dotenv()
 
 
 
 logger = logging.getLogger(__name__)
+
+pinecone.init(
+    api_key=os.getenv('PINECONE_API_KEY'),
+    environment=os.getenv('PINECONE_ENVIRONMENT')
+)
+
+INDEX_NAME = os.getenv('PINECONE_INDEX_NAME')
+EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
 class UserRegistrationView(APIView):
     """Handle user registration with token creation"""
@@ -136,6 +148,19 @@ class UserLogoutView(APIView):
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+if INDEX_NAME not in pinecone.list_indexes():
+    pinecone.create_index(
+        name = INDEX_NAME,
+        metric = "cosine",
+        dimension = 768,
+        spec=ServerlessSpec(cloud="aws", region=os.getenv('PINECONE_ENVIRONMENT')),
+    )
+
+vector_store = PineconeVectorStore(
+    index_name=INDEX_NAME,
+    embedding=EMBEDDINGS,
+)
+
 class ChatbotView(APIView):
     """Handle authenticated chatbot interactions"""
     authentication_classes = (JWTAuthentication,)
@@ -153,11 +178,30 @@ class ChatbotView(APIView):
 
 
             preprocessed_input = preprocess_text(user_input)
-            # Use a concise system prompt for all roles
-            system_message = "You are a helpful and knowledgeable assistant. Answer questions clearly and directly in plain text."
+
+            relevant_docs = vector_store.similarity_search(
+                query = preprocessed_input,
+                k = 5,
+                filter = {
+                    "role": role
+                }
+            )
+
+            context_messages = []
+
+            for doc in relevant_docs:
+                msg_type = "User" if doc.metadata.get("role") == "user" else "Assistant"
+                context_messages.append(f"{msg_type}: {doc.page_content}")
+            
+            context_str = "\n".join(context_messages) if context_messages else "No relevant history found"
+
+            system_prompt = f"""You are a helpful assistant. Consider this relevant conversation history:
+            {context_str}
+            
+            Current conversation:"""
 
             prompt = ChatPromptTemplate.from_messages([
-                SystemMessagePromptTemplate.from_template(system_message),
+                SystemMessagePromptTemplate.from_template(system_prompt),
                 HumanMessagePromptTemplate.from_template("{input}")
             ])
 
@@ -199,6 +243,7 @@ class ChatbotView(APIView):
 
 
             if request.user.is_authenticated:
+                self._store_in_pinecone(request.user, user_input, bot_response)
                 self._log_interaction(request.user, user_input, bot_response)
 
             return Response({
@@ -219,6 +264,30 @@ class ChatbotView(APIView):
                 {'error': 'Internal server error'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    def _store_in_pinecone(self, user, user_input, bot_response):
+        """Store conversation in Pinecone vector database"""
+        try:
+            # Create metadata
+            user_meta = {
+                "user_id": user.id,
+                "type": "user",
+                "timestamp": datetime.now().isoformat()
+            }
+            bot_meta = {
+                "user_id": user.id,
+                "type": "bot",
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Add to Pinecone
+            vector_store.add_texts(
+                texts=[user_input, bot_response],
+                metadatas=[user_meta, bot_meta]
+            )
+        except Exception as e:
+            logger.error(f"Pinecone storage error: {str(e)}")
+
 
     def _log_interaction(self, user, user_input, bot_response):
         """Log user interactions with context"""
