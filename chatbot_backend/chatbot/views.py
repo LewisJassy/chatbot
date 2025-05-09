@@ -1,7 +1,9 @@
 import json
 import os
 import logging
+from tenacity import retry, stop_after_attempt, wait_fixed
 from datetime import datetime, timedelta
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
@@ -201,10 +203,16 @@ class ChatbotView(APIView):
                 relevant_docs = []
 
             context_messages = []
-
+            max_context_tokens = 4000
+            current_tokens = 0
             for doc in relevant_docs:
                 msg_type = "User" if doc.metadata.get("role") == "user" else "Assistant"
-                context_messages.append(f"{msg_type}: {doc.page_content}")
+                message = f"{msg_type}: {doc.page_content}"
+                estimated_tokens = len(message) // 4
+                if current_tokens + estimated_tokens > max_context_tokens:
+                    break
+                context_messages.append(message)
+                current_tokens += estimated_tokens
             
             context_str = "\n".join(context_messages) if context_messages else "No relevant history found"
 
@@ -278,9 +286,21 @@ class ChatbotView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def _store_in_pinecone(self, user, user_input, bot_response):
         """Store conversation in Pinecone vector database"""
+        if not user_input.strip() or not bot_response.strip():
+            logger.warning("Skipping Pinecone storage: Empty input or response")
+            return
+
         try:
+            cache_key = f"pinecone_rate_limit_{user.id}"
+            request_count = cache.get(cache_key, 0)
+            if request_count >= 100:
+                logger.warning(f"Rate limit exceeded for user {user.id} in Pinecone storage")
+                return
+            cache.set(cache_key, request_count + 1, timeout=3600)
+
             # Create metadata
             user_meta = {
                 "user_id": user.id,
@@ -292,14 +312,14 @@ class ChatbotView(APIView):
                 "type": "bot",
                 "timestamp": datetime.now().isoformat()
             }
-
-            # Add to Pinecone
+                # Add to Pinecone
             vector_store.add_texts(
                 texts=[user_input, bot_response],
                 metadatas=[user_meta, bot_meta]
             )
         except Exception as e:
             logger.error(f"Pinecone storage error: {str(e)}")
+            raise
 
 
     def _log_interaction(self, user, user_input, bot_response):
