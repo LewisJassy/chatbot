@@ -147,14 +147,23 @@ class UserLogoutView(APIView):
         except Exception as e:
             return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-if INDEX_NAME not in pinecone.list_indexes():
-    pinecone.create_index(
-        name = INDEX_NAME,
-        metric = "cosine",
-        dimension = 768,
-        spec=ServerlessSpec(cloud="aws", region=os.getenv('PINECONE_ENVIRONMENT')),
-    )
+def initialize_pinecone_index():
+    """Initialize Pinecone index if it doesn't exist"""
+    try:
+        if INDEX_NAME not in pinecone.list_indexes():
+            pinecone.create_index(
+                name = INDEX_NAME,
+                metric = "cosine",
+                dimension = 768,
+                spec=ServerlessSpec(cloud="aws", region=os.getenv('PINECONE_ENVIRONMENT')),
+            )
+            logger.info(f"Created Pinecone index: {INDEX_NAME}")
+        else:
+            logger.info(f"Pinecone index already exists: {INDEX_NAME}")
+    except Exception as e:
+        logger.error(f"Error initializing Pinecone index: {str(e)}")
+        raise
+initialize_pinecone_index()
 
 vector_store = PineconeVectorStore(
     index_name=INDEX_NAME,
@@ -179,13 +188,17 @@ class ChatbotView(APIView):
 
             preprocessed_input = preprocess_text(user_input)
 
-            relevant_docs = vector_store.similarity_search(
-                query = preprocessed_input,
-                k = 5,
-                filter = {
-                    "role": role
-                }
-            )
+            try:
+                relevant_docs = vector_store.similarity_search(
+                    query = preprocessed_input,
+                    k = 5,
+                    filter = {
+                        "role": role
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Similarity search error: {str(e)}")
+                relevant_docs = []
 
             context_messages = []
 
