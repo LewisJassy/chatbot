@@ -303,9 +303,9 @@ class ChatbotView(APIView):
                 logger.warning(f"Rate limit exceeded for user {user.id} in Pinecone storage")
                 return
             try:
-                new_count = cache.incr(cache_key, 1)
+                cache.incr(cache_key, 1)
             except ValueError:
-                cache.set(new_count, timeout=PINECONE_RATE_LIMIT_TIMEOUT)
+                cache.set(cache_key, 1, timeout=PINECONE_RATE_LIMIT_TIMEOUT)
             # Create metadata
             user_meta = {
                 "user_id": user.id,
