@@ -27,6 +27,9 @@ import pinecone
 from pinecone import ServerlessSpec
 
 load_dotenv()
+MAX_CONTEXT_TOKENS = 4000
+PINECONE_RATE_LIMIT = 100
+PINECONE_RATE_LIMIT_TIMEOUT = 3600
 
 
 
@@ -203,7 +206,7 @@ class ChatbotView(APIView):
                 relevant_docs = []
 
             context_messages = []
-            max_context_tokens = 4000
+            max_context_tokens = MAX_CONTEXT_TOKENS - 200
             current_tokens = 0
             for doc in relevant_docs:
                 msg_type = "User" if doc.metadata.get("role") == "user" else "Assistant"
@@ -296,11 +299,13 @@ class ChatbotView(APIView):
         try:
             cache_key = f"pinecone_rate_limit_{user.id}"
             request_count = cache.get(cache_key, 0)
-            if request_count >= 100:
+            if request_count >= PINECONE_RATE_LIMIT:
                 logger.warning(f"Rate limit exceeded for user {user.id} in Pinecone storage")
                 return
-            cache.set(cache_key, request_count + 1, timeout=3600)
-
+            try:
+                new_count = cache.incr(cache_key, 1)
+            except ValueError:
+                cache.set(new_count, timeout=PINECONE_RATE_LIMIT_TIMEOUT)
             # Create metadata
             user_meta = {
                 "user_id": user.id,
