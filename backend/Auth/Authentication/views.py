@@ -30,7 +30,6 @@ class UserRegistrationView(APIView):
                     status=status.HTTP_201_CREATED
                 )
             except Exception as e:
-                logger.error(f"Error during registration: {str(e)}")
                 return Response(
                     {'error': 'An error occurred during registration. Please try again later'},
                     status=status.HTTP_400_BAD_REQUEST
@@ -53,7 +52,7 @@ class UserLoginView(APIView):
             password=serializer.validated_data['password']
         )
         if not user:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Invalid credentials, check your email or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)

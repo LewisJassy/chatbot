@@ -1,0 +1,58 @@
+from preprocessing import preprocess_text
+from fastapi import FastAPI
+from langchain_pinecone import PineconeVectorStore
+from langchain_community.embeddings import HuggingFaceEmbeddings
+import pinecone  # Import the module, not the class
+from pinecone import ServerlessSpec
+from models import SimilaritySearchRequest
+import os
+from dotenv import load_dotenv
+import logging
+app = FastAPI()
+load_dotenv()
+
+PINECONE_RATE_LIMIT = 100
+PINECONE_RATE_LIMIT_TIMEOUT = 3600
+
+logger = logging.getLogger(__name__)
+
+PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
+PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
+INDEX_NAME = os.getenv('PINECONE_INDEX_NAME')
+EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+
+pc = pinecone.Pinecone(api_key=PINECONE_API_KEY)
+
+def initialize_pinecone_index():
+    """Initialize Pinecone index if it doesn't exist"""
+    try:
+        indexes = [index.name for index in pc.list_indexes()]
+        print(indexes)
+        if INDEX_NAME not in indexes:
+            pc.create_index(
+                name = INDEX_NAME,
+                metric = "cosine",
+                dimension = 768,
+                spec=ServerlessSpec(cloud="aws", region=os.getenv('PINECONE_ENVIRONMENT')),
+            )
+            logger.info(f"Created Pinecone index: {INDEX_NAME}")
+        else:
+            logger.info(f"Pinecone index already exists: {INDEX_NAME}")
+    except Exception as e:
+        logger.error(f"Error initializing Pinecone index: {str(e)}")
+        raise
+initialize_pinecone_index()
+
+vector_store = PineconeVectorStore(
+    index_name=INDEX_NAME,
+    embedding=EMBEDDINGS,
+)
+
+
+@app.post("/similarity-search")
+async def similarity_search(request: SimilaritySearchRequest):
+    return vector_store.similarity_search(
+        query=preprocess_text(request.query),
+        k=5,
+        filter={"role": request.role}
+    )
