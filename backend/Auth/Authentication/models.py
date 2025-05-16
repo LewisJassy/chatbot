@@ -11,7 +11,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     """
     email = models.EmailField(_("email address"), unique=True)
     is_active = models.BooleanField(default=True)
-    last_login = models.DateTimeField(default=timezone.now)
     date_joined = models.DateTimeField(default=timezone.now)
 
     # Add these fields with unique related_name
@@ -43,5 +42,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
-
-User = get_user_model()

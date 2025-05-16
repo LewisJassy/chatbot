@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from typing import AsyncGenerator
-from models import ChatRequest, ChatResponse
+from .models import ChatRequest, ChatResponse
 
 router = APIRouter()
 security = HTTPBearer()
@@ -68,7 +68,7 @@ async def handle_chat(
     background_tasks: BackgroundTasks,
     user_info: dict = Depends(verify_token)
 ):
-    user_id = user_info.get("user_id")
+    user_id = user_info.get("user", {}).get("id")
     
     try:
         # Get context from vector service

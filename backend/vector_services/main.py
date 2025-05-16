@@ -1,5 +1,5 @@
 from preprocessing import preprocess_text
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from langchain_pinecone import PineconeVectorStore
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import pinecone  # Import the module, not the class
@@ -27,7 +27,6 @@ def initialize_pinecone_index():
     """Initialize Pinecone index if it doesn't exist"""
     try:
         indexes = [index.name for index in pc.list_indexes()]
-        print(indexes)
         if INDEX_NAME not in indexes:
             pc.create_index(
                 name = INDEX_NAME,
@@ -48,11 +47,28 @@ vector_store = PineconeVectorStore(
     embedding=EMBEDDINGS,
 )
 
+@app.get("/health")  
+async def health_check():  
+    """Health check endpoint"""  
+    try:  
+        # Check if vector store is accessible  
+        pc.describe_index(index_name=INDEX_NAME)  
+        return {"status": "healthy"}  
+    except Exception as e:  
+        logger.error(f"Health check failed: {str(e)}")  
+        raise HTTPException(status_code=503, detail="Service unhealthy") 
 
-@app.post("/similarity-search")
-async def similarity_search(request: SimilaritySearchRequest):
-    return vector_store.similarity_search(
-        query=preprocess_text(request.query),
-        k=5,
-        filter={"role": request.role}
-    )
+
+@app.post("/similarity-search")  
+async def similarity_search(request: SimilaritySearchRequest):  
+    try:  
+        preprocessed_query = preprocess_text(request.query)  
+        logger.info(f"Performing similarity search for query: {preprocessed_query[:50]}...")  
+        return vector_store.similarity_search(  
+            query=preprocessed_query,  
+            k=5,  
+            filter={"role": request.role}  
+        )  
+    except Exception as e:  
+        logger.error(f"Error during similarity search: {str(e)}")  
+        raise HTTPException(status_code=500, detail=f"Error performing similarity search: {str(e)}") 

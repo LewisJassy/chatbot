@@ -29,9 +29,10 @@ class UserRegistrationView(APIView):
                     {'message': 'User created successfully'},
                     status=status.HTTP_201_CREATED
                 )
-            except Exception as e:
+            except Exception as exc:
+                logger.exception("Registration failed")
                 return Response(
-                    {'error': 'An error occurred during registration. Please try again later'},
+                    {'error': 'Registration failed – please try again later.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
@@ -110,18 +111,20 @@ class UserLogoutView(APIView):
     def post(self, request):
         try:
             refresh_token = request.data.get("refresh_token")
-
-            if not refresh_token:
-                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-            # Blacklist the refresh token
-            try:
-                token = RefreshToken(refresh_token)
-                token.blacklist()
-            except TokenError as e:
-                return Response({"error": f"Invalid token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
-            return Response({"status": "success", "message": "User logged out successfully."}, status=status.HTTP_200_OK)
-
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(
+                {"status": "success", "message": "User logged out successfully."},
+                status=status.HTTP_200_OK
+            )
+        except TokenError as exc:
+            logger.warning("Logout called with invalid token: %s", exc)
+            return Response(
+                {"error": "Invalid refresh token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
-            return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": f"Unexpected error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
