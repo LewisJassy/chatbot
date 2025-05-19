@@ -10,3 +10,4 @@ huggingface-hub==0.23.0
 spacy==3.7.4
 pydantic==2.7.4
 uvicorn==0.29.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
