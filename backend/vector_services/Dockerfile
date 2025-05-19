@@ -1,63 +1,43 @@
-############################
-# Stage 1 — Build          #
-############################
-FROM python:3.12-slim-bullseye AS builder
+### --- Builder Stage ---
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install system build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    python3-dev \
-    git \
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and setuptools
-RUN pip install --no-cache-dir --upgrade pip setuptools
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | bash && \
+    mv /root/.local/bin/uv /usr/local/bin/
 
-# Copy requirements first to leverage Docker cache
+# Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies with cache mount
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir \
+# Create virtual environment and install dependencies using uv
+RUN uv venv && \
+    uv pip install pip && \
+    uv pip install --index-strategy unsafe-best-match \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     -r requirements.txt
 
-############################
-# Stage 2 — Runtime        #
-############################
-FROM python:3.12-slim-bullseye
+# Download spaCy model (requires pip to be present)
+RUN .venv/bin/python -m spacy download en_core_web_sm
+
+# Copy the rest of the project
+COPY . .
+
+### --- Final Stage ---
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install runtime system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app /app
 
-# Copy Python packages and binaries from builder
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy application code
-COPY . .
+EXPOSE 8002
 
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8002
-
-# Expose the port (informational only, doesn't actually publish)
-EXPOSE $PORT
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:$PORT/health || exit 1
-
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
