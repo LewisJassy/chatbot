@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from typing import AsyncGenerator
-from .models import ChatRequest, ChatResponse
+from models import ChatRequest, ChatResponse
 
 router = APIRouter()
 security = HTTPBearer()
