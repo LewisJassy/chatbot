@@ -1,7 +1,7 @@
 from preprocessing import preprocess_text
 from fastapi import FastAPI, HTTPException
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 import pinecone  # Import the module, not the class
 from pinecone import ServerlessSpec
 from models import SimilaritySearchRequest
