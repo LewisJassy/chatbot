@@ -20,14 +20,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     # Install cryptography first to ensure it builds correctly
     pip install cryptography && \
     # Consolidate all requirements into all_requirements.txt
-    echo "setuptools" > all_requirements.txt && \
+    echo "setuptools==65.5.0" > all_requirements.txt && \
     echo "wheel" >> all_requirements.txt && \
     cat requirements/*.txt | sort -u >> all_requirements.txt && \
     # Sort again to ensure uniqueness and proper merging
     sort -u -o all_requirements.txt all_requirements.txt && \
     # Download all packages and their dependencies specified in all_requirements.txt
     pip download --dest /wheels \
-        setuptools \
+        setuptools==65.5.0 \
         wheel \
         cryptography \
         cffi \
