@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  vector_services:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vector_services:latest
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
