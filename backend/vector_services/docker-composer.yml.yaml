@@ -6,6 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: vector_services:latest
+    env_file:
+      -.env
     ports:
       - "8002:8002"
     environment:

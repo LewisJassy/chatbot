@@ -16,12 +16,11 @@ PINECONE_RATE_LIMIT_TIMEOUT = 3600
 
 logger = logging.getLogger(__name__)
 
-PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
 PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
 INDEX_NAME = os.getenv('PINECONE_INDEX_NAME')
 EMBEDDINGS = HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
 
-pc = pinecone.Pinecone(api_key=PINECONE_API_KEY)
+pc = pinecone.Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 def initialize_pinecone_index():
     """Initialize Pinecone index if it doesn't exist"""

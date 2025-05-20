@@ -1,24 +1,50 @@
-version: '3.8'
-
 services:
-  backend_services:
+  chatbot_history:
     build:
-      context: .
+      context: ./chatbot_history
       dockerfile: Dockerfile
+    env_file:
+      - ./chatbot_history/.env
     ports:
-      - "8000:8000" 
-      - "8001:8001" 
-      - "8002:8002" 
       - "8003:8003"
     environment:
       - PYTHONUNBUFFERED=1
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=${POSTGRES_DB}
       - DB_USER=${POSTGRES_USER}
-      - DB_PASSWORD=${POSTGRES_PASSWORD} # Consider using Docker secrets for passwords in production
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_HOST=${POSTGRES_HOST}
       - DB_PORT=${POSTGRES_PORT}
-    
+    tty: true
+    stdin_open: true
+
+  chatbot:
+    build:
+      context: ./chatbot
+      dockerfile: Dockerfile
+    env_file:
+      - ./chatbot/.env
+    ports:
+      - "8001:8001"
+    tty: true
+    stdin_open: true
+
+  auth:
+    build:
+      context: ./Auth
+      dockerfile: Dockerfile
+    env_file:
+      - ./Auth/.env
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
     tty: true
     stdin_open: true
 
