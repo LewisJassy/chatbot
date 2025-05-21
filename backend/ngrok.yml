@@ -1,0 +1,13 @@
+version: "2"
+
+authtoken: ${NGROK_AUTHTOKEN}
+tunnels:
+  auth:
+    proto: http
+    addr: host.docker.internal:8000
+  chatbot:
+    proto: http
+    addr: host.docker.internal:8001
+  history:
+    proto: http
+    addr: host.docker.internal:8003

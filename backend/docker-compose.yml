@@ -48,4 +48,12 @@ services:
     tty: true
     stdin_open: true
 
-
+  ngrok:
+    image: ngrok/ngrok:alpine
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: start --all --config /etc/ngrok.yml
+    ports:
+      - "4040:4040"
