@@ -1,7 +1,7 @@
 services:
   chatbot_history:
     build:
-      context: ./chatbot_history
+      context: .
       dockerfile: Dockerfile
     env_file:
       - ./chatbot_history/.env
@@ -20,7 +20,7 @@ services:
 
   chatbot:
     build:
-      context: ./chatbot
+      context: .
       dockerfile: Dockerfile
     env_file:
       - ./chatbot/.env
@@ -31,10 +31,10 @@ services:
 
   auth:
     build:
-      context: ./Auth
+      context: .
       dockerfile: Dockerfile
     env_file:
-      - ./Auth/.env
+      - ./Auth/Auth/.env
     ports:
       - "8000:8000"
     environment:

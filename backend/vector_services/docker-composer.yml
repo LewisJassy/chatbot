@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   vector_services:
     build:
@@ -7,12 +5,14 @@ services:
       dockerfile: Dockerfile
     image: vector_services:latest
     env_file:
-      -.env
+      - .env
     ports:
       - "8002:8002"
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8002
+    volumes:
+      - ./:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 30s

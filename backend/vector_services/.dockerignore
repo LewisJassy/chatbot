@@ -34,7 +34,6 @@ Dockerfile
 .gitignore
 
 # Virtual Environment
-venv/
 ENV/
 
 # IDE

@@ -51,7 +51,7 @@ async def health_check():
     """Health check endpoint"""  
     try:  
         # Check if vector store is accessible  
-        pc.describe_index(index_name=INDEX_NAME)  
+        pc.describe_index(INDEX_NAME)  
         return {"status": "healthy"}  
     except Exception as e:  
         logger.error(f"Health check failed: {str(e)}")  
