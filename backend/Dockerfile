@@ -46,9 +46,9 @@ RUN mkdir -p /var/log/supervisor
 COPY --from=builder /wheels /wheels
 COPY --from=builder /deps/all_requirements.txt /deps/all_requirements.txt
 
-RUN pip install cryptography && \
-    pip install psycopg2-binary && \
-    pip install --no-cache-dir --find-links=/wheels -r /deps/all_requirements.txt && \
+RUN pip install cryptography --timeout=100 --index-url https://pypi.org/simple && \
+    pip install psycopg2-binary --timeout=100 --index-url https://pypi.org/simple && \
+    pip install --timeout=100 --no-cache-dir --find-links=/wheels -r /deps/all_requirements.txt --index-url https://pypi.org/simple && \
     apt-get purge -y gcc && \
     apt-get autoremove -y && \
     apt-get clean

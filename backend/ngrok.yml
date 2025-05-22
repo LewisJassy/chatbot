@@ -1,13 +1,15 @@
 version: "2"
-
 authtoken: ${NGROK_AUTHTOKEN}
 tunnels:
   auth:
     proto: http
-    addr: host.docker.internal:8000
+    addr: auth:8000
+    bind_tls: true
   chatbot:
     proto: http
-    addr: host.docker.internal:8001
+    addr: chatbot:8001
+    bind_tls: true
   history:
     proto: http
-    addr: host.docker.internal:8003
+    addr: chatbot_history:8003
+    bind_tls: true
