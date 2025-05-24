@@ -24,7 +24,7 @@ load_dotenv()
 VECTOR_SERVICE_URL = os.getenv("VECTOR_SERVICE_URL", "http://localhost:82")
 AUTH_URL = os.getenv("AUTH_URL", "http://127.0.0.1:8000")
 MAX_CONTEXT_TOKENS = 4000
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
 # Connection pool for RabbitMQ
 rabbitmq_connection_pool = None
@@ -33,6 +33,7 @@ async def get_rabbitmq_connection() -> aio_pika.RobustConnection:
     global rabbitmq_connection_pool
     if not rabbitmq_connection_pool:
         rabbitmq_connection_pool = await aio_pika.connect_robust(RABBITMQ_URL)
+    print(rabbitmq_connection_pool)
     return rabbitmq_connection_pool
 
 async def verify_token(token: HTTPAuthorizationCredentials = Depends(security)) -> dict:
@@ -209,6 +210,9 @@ async def _log_interaction(user_id: str, user_input: str, bot_response: str):
         connection = await get_rabbitmq_connection()
         channel = await connection.channel()
         
+        # Declare queue to ensure it exists
+        await channel.declare_queue("chat_history", durable=True)
+        
         await channel.default_exchange.publish(
             aio_pika.Message(
                 body=json.dumps({
@@ -216,9 +220,11 @@ async def _log_interaction(user_id: str, user_input: str, bot_response: str):
                     "message": user_input,
                     "response": bot_response,
                     "timestamp": datetime.now().isoformat()
-                }).encode()
+                }).encode(),
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT  # Make message persistent
             ),
             routing_key="chat_history"
         )
+        logger.info(f"Logged interaction for user {user_id}")
     except Exception as e:
         logger.error(f"Failed to log interaction: {str(e)}")

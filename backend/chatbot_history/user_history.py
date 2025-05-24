@@ -13,11 +13,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database configuration
 DB_CONFIG = {
     "host": os.getenv("POSTGRES_HOST", "localhost"),
     "port": os.getenv("POSTGRES_PORT", "5432"),
@@ -26,7 +24,6 @@ DB_CONFIG = {
     "database": os.getenv("POSTGRES_DB", "chat_history")
 }
 
-# Models
 class ChatHistoryCreate(BaseModel):
     user_id: str
     message: str
@@ -84,7 +81,7 @@ async def consume_messages():
     async def shutdown_handler():
         shutdown_event.set()
     
-    app.state.shutdown_handlers = app.state.shutdown_handlers if hasattr(app.stater, "shutdown_handlers") else []
+    app.state.shutdown_handlers = app.state.shutdown_handlers if hasattr(app.state, "shutdown_handlers") else []
     app.state.shutdown_handlers.append(shutdown_handler)
     while not shutdown_event.is_set():
         try:
