@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Configuration
-VECTOR_SERVICE_URL = os.getenv("VECTOR_SERVICE_URL", "http://127.0.0.1:9000")
+VECTOR_SERVICE_URL = os.getenv("VECTOR_SERVICE_URL", "http://localhost:82")
 AUTH_URL = os.getenv("AUTH_URL", "http://127.0.0.1:8000")
 MAX_CONTEXT_TOKENS = 4000
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
@@ -131,7 +131,7 @@ async def _stream_generator(message: str, context: str, user_id: str) -> AsyncGe
         logger.error(f"Streaming error: {str(e)}")
         yield f"data: {json.dumps({'error': 'Stream interrupted'})}\n\n"
 
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(1))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def _call_vector_service(query: str, role: str) -> dict:
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -142,7 +142,7 @@ async def _call_vector_service(query: str, role: str) -> dict:
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as e:
-        logger.error(f"Vector service error: {e.response.text}")
+        logger.error(f"Vector service error: {e}")
         raise HTTPException(
             status_code=e.response.status_code,
             detail="Vector service error"
