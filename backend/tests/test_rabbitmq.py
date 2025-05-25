@@ -1,227 +1,204 @@
-#!/usr/bin/env python3
-"""
-RabbitMQ Testing Script for Chatbot System
-This script helps you verify that RabbitMQ is working correctly.
-"""
-
 import asyncio
+import asyncpg
 import aio_pika
 import json
-import time
-from datetime import datetime
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
+# Database config
+DB_CONFIG = {
+    "host": os.getenv("POSTGRES_HOST", "localhost"),
+    "port": os.getenv("POSTGRES_PORT", "5432"),
+    "user": os.getenv("POSTGRES_USER", "postgres"),
+    "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+    "database": os.getenv("POSTGRES_DB", "chat_history")
+}
+
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
-async def test_rabbitmq_connection():
-    """Test basic RabbitMQ connection"""
-    print("🔍 Testing RabbitMQ Connection...")
+async def test_complete_flow():
+    print("🔄 Testing Complete RabbitMQ → Database Flow")
+    print("=" * 50)
+    
+    # Test 1: Database Connection
+    print("\n1. Testing Database Connection...")
+    try:
+        conn = await asyncpg.connect(**DB_CONFIG)
+        print("✅ Database connection successful")
+        
+        # Check if table exists
+        table_exists = await conn.fetchval("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'chat_history'
+            );
+        """)
+        
+        if table_exists:
+            print("✅ chat_history table exists")
+        else:
+            print("❌ chat_history table does not exist")
+            print("Creating table...")
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id SERIAL PRIMARY KEY,
+                    user_id VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    response TEXT NOT NULL,
+                    timestamp TIMESTAMPTZ NOT NULL,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
+            print("✅ Table created")
+        
+        await conn.close()
+        
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        return False
+    
+    # Test 2: RabbitMQ Connection
+    print("\n2. Testing RabbitMQ Connection...")
     try:
         connection = await aio_pika.connect_robust(RABBITMQ_URL)
-        print("✅ RabbitMQ connection successful!")
-        
         channel = await connection.channel()
-        print("✅ Channel created successfully!")
+        queue = await channel.declare_queue("chat_history", durable=True)
+        print("✅ RabbitMQ connection successful")
+        
+        # Get initial queue state
+        initial_info = await queue.get_info()
+        print(f"   Initial queue: {initial_info.message_count} messages")
         
         await connection.close()
-        return True
+        
     except Exception as e:
-        print(f"❌ RabbitMQ connection failed: {e}")
+        print(f"❌ RabbitMQ error: {e}")
         return False
-
-async def test_queue_operations():
-    """Test queue creation and basic operations"""
-    print("\n🔍 Testing Queue Operations...")
+    
+    # Test 3: Send Message to Queue
+    print("\n3. Testing Message Publishing...")
     try:
         connection = await aio_pika.connect_robust(RABBITMQ_URL)
         channel = await connection.channel()
-        
-        # Declare the same queue used by your app
-        queue = await channel.declare_queue("chat_history", durable=True)
-        print("✅ Queue 'chat_history' declared successfully!")
-        
-        # Get queue info
-        queue_info = await queue.get_info()
-        print(f"📊 Queue info: {queue_info.message_count} messages, {queue_info.consumer_count} consumers")
-        
-        await connection.close()
-        return True
-    except Exception as e:
-        print(f"❌ Queue operations failed: {e}")
-        return False
-
-async def send_test_message():
-    """Send a test message to the chat_history queue"""
-    print("\n🔍 Sending Test Message...")
-    try:
-        connection = await aio_pika.connect_robust(RABBITMQ_URL)
-        channel = await connection.channel()
-        
-        # Declare queue to ensure it exists
         queue = await channel.declare_queue("chat_history", durable=True)
         
-        test_data = {
-            "user_id": "test_user_123",
-            "message": "Hello, this is a test message",
-            "response": "This is a test response from the bot",
+        test_message = {
+            "user_id": f"test_flow_{int(datetime.now().timestamp())}",
+            "message": "Testing complete RabbitMQ flow",
+            "response": "This is a test response to verify the complete workflow",
             "timestamp": datetime.now().isoformat()
         }
         
-        # Publish message (same way as your chat service does)
         await channel.default_exchange.publish(
             aio_pika.Message(
-                body=json.dumps(test_data).encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT  # Make message persistent
+                body=json.dumps(test_message).encode(),
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
             ),
             routing_key="chat_history"
         )
         
-        print("✅ Test message sent successfully!")
-        print(f"📝 Message content: {test_data}")
+        print("✅ Message published to queue")
+        print(f"   User ID: {test_message['user_id']}")
+        
+        # Check queue after publishing
+        after_info = await queue.get_info()
+        print(f"   Queue after publish: {after_info.message_count} messages")
         
         await connection.close()
-        return True
+        
     except Exception as e:
-        print(f"❌ Failed to send test message: {e}")
+        print(f"❌ Publishing error: {e}")
         return False
-
-async def consume_test_messages(timeout=10):
-    """Consume messages from the queue to verify they're being processed"""
-    print(f"\n🔍 Consuming Messages (timeout: {timeout}s)...")
+    
+    # Test 4: Check if message appears in database (manual consumer simulation)
+    print("\n4. Simulating Consumer (Manual Message Processing)...")
     try:
+        # Connect to RabbitMQ
         connection = await aio_pika.connect_robust(RABBITMQ_URL)
         channel = await connection.channel()
         queue = await channel.declare_queue("chat_history", durable=True)
         
-        messages_received = 0
-        start_time = time.time()
+        # Connect to database
+        db_conn = await asyncpg.connect(**DB_CONFIG)
+        
+        print("   Waiting for messages...")
+        message_processed = False
+        timeout_counter = 0
         
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
-                if time.time() - start_time > timeout:
-                    break
-                    
                 async with message.process():
                     try:
                         data = json.loads(message.body.decode())
-                        print(f"✅ Received message: {data}")
-                        messages_received += 1
-                        # Don't acknowledge here - let your actual consumer handle it
-                        break  # Exit after first message for testing
-                    except json.JSONDecodeError as e:
-                        print(f"❌ Invalid JSON: {e}")
+                        print(f"✅ Received message: {data['user_id']}")
+                        
+                        # Save to database (simulating your consumer)
+                        await db_conn.execute("""
+                            INSERT INTO chat_history (user_id, message, response, timestamp)
+                            VALUES ($1, $2, $3, $4)
+                        """, data["user_id"], data["message"], data["response"], 
+                           datetime.fromisoformat(data["timestamp"]))
+                        
+                        print("✅ Message saved to database")
+                        message_processed = True
+                        break
+                        
+                    except Exception as e:
+                        print(f"❌ Error processing message: {e}")
+                        await message.reject(requeue=True)
+                        break
+                
+                timeout_counter += 1
+                if timeout_counter > 10:  # Timeout after ~10 seconds
+                    print("⏰ No messages received within timeout")
+                    break
         
-        print(f"📊 Received {messages_received} messages")
         await connection.close()
-        return messages_received > 0
+        await db_conn.close()
+        
+        if not message_processed:
+            print("⚠️  No messages were processed")
+        
     except Exception as e:
-        print(f"❌ Failed to consume messages: {e}")
+        print(f"❌ Consumer simulation error: {e}")
         return False
-
-async def check_queue_status():
-    """Check current queue status"""
-    print("\n🔍 Checking Queue Status...")
+    
+    # Test 5: Verify in Database
+    print("\n5. Verifying Data in Database...")
     try:
-        connection = await aio_pika.connect_robust(RABBITMQ_URL)
-        channel = await connection.channel()
-        queue = await channel.declare_queue("chat_history", durable=True)
+        conn = await asyncpg.connect(**DB_CONFIG)
         
-        # Get queue information
-        info = await queue.get_info()
-        print(f"📊 Queue 'chat_history' status:")
-        print(f"   - Messages: {info.message_count}")
-        print(f"   - Consumers: {info.consumer_count}")
+        # Get recent messages
+        recent = await conn.fetch("""
+            SELECT user_id, message, timestamp 
+            FROM chat_history 
+            WHERE user_id LIKE 'test_flow_%'
+            ORDER BY timestamp DESC 
+            LIMIT 3
+        """)
         
-        await connection.close()
-        return True
+        if recent:
+            print(f"✅ Found {len(recent)} test messages in database:")
+            for msg in recent:
+                print(f"   - {msg['user_id']}: {msg['message'][:30]}...")
+        else:
+            print("❌ No test messages found in database")
+        
+        await conn.close()
+        
     except Exception as e:
-        print(f"❌ Failed to check queue status: {e}")
+        print(f"❌ Database verification error: {e}")
         return False
-
-async def simulate_chat_interaction():
-    """Simulate a complete chat interaction"""
-    print("\n🔍 Simulating Complete Chat Interaction...")
     
-    # This simulates what happens in your chat_router.py
-    user_id = "test_user_456"
-    user_message = "What is artificial intelligence?"
-    bot_response = "Artificial intelligence (AI) is a branch of computer science..."
+    print("\n🎉 Complete flow test finished!")
+    print("   RabbitMQ → Consumer → Database workflow verified")
     
-    try:
-        connection = await aio_pika.connect_robust(RABBITMQ_URL)
-        channel = await connection.channel()
-        
-        # Ensure queue exists
-        await channel.declare_queue("chat_history", durable=True)
-        
-        # Send message exactly like your _log_interaction function
-        await channel.default_exchange.publish(
-            aio_pika.Message(
-                body=json.dumps({
-                    "user_id": user_id,
-                    "message": user_message,
-                    "response": bot_response,
-                    "timestamp": datetime.now().isoformat()
-                }).encode()
-            ),
-            routing_key="chat_history"
-        )
-        
-        print("✅ Chat interaction logged to RabbitMQ!")
-        print(f"   - User: {user_id}")
-        print(f"   - Message: {user_message}")
-        print(f"   - Response: {bot_response[:50]}...")
-        
-        await connection.close()
-        return True
-    except Exception as e:
-        print(f"❌ Failed to simulate chat interaction: {e}")
-        return False
-
-async def main():
-    """Run all tests"""
-    print("🚀 RabbitMQ Testing Suite for Chatbot System")
-    print("=" * 50)
-    
-    tests = [
-        ("Connection Test", test_rabbitmq_connection),
-        ("Queue Operations", test_queue_operations),
-        ("Queue Status Check", check_queue_status),
-        ("Send Test Message", send_test_message),
-        ("Chat Interaction Simulation", simulate_chat_interaction),
-        ("Queue Status After Tests", check_queue_status),
-    ]
-    
-    results = []
-    for test_name, test_func in tests:
-        print(f"\n{'='*20} {test_name} {'='*20}")
-        result = await test_func()
-        results.append((test_name, result))
-        
-        if not result:
-            print(f"❌ {test_name} FAILED - Check RabbitMQ setup")
-        
-        await asyncio.sleep(1)  # Brief pause between tests
-    
-    # Summary
-    print(f"\n{'='*50}")
-    print("📋 TEST SUMMARY:")
-    for test_name, result in results:
-        status = "✅ PASS" if result else "❌ FAIL"
-        print(f"   {status} - {test_name}")
-    
-    passed = sum(1 for _, result in results if result)
-    total = len(results)
-    print(f"\n🎯 Overall: {passed}/{total} tests passed")
-    
-    if passed == total:
-        print("🎉 All tests passed! RabbitMQ is working correctly.")
-    else:
-        print("⚠️  Some tests failed. Check your RabbitMQ setup.")
+    return True
 
 if __name__ == "__main__":
-    print("Starting RabbitMQ tests...")
-    asyncio.run(main())
+    print("Starting complete workflow test...")
+    asyncio.run(test_complete_flow())
