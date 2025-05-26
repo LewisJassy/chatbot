@@ -26,6 +26,11 @@ AUTH_URL = os.getenv("AUTH_URL", "http://127.0.0.1:8000")
 MAX_CONTEXT_TOKENS = 4000
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
+# GitHub AI Models Configuration
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_ENDPOINT = "https://models.github.ai/inference"
+GITHUB_MODEL = "openai/gpt-4.1"
+
 # Connection pool for RabbitMQ
 rabbitmq_connection_pool = None
 
@@ -176,14 +181,15 @@ async def _generate_response(message: str, context: str) -> str:
         HumanMessagePromptTemplate.from_template("{input}")
     ])
     
-    model = ChatOpenAI(
-        model="mistralai/mixtral-8x7b-instruct",
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-        temperature=0.6
+    client = ChatOpenAI(
+        base_url=GITHUB_ENDPOINT,
+        api_key=GITHUB_TOKEN,
+        model=GITHUB_MODEL,
+        temperature=1.0,
+        top_p=1.0
     )
     
-    chain = prompt | model | StrOutputParser()
+    chain = prompt | client | StrOutputParser()
     return await chain.ainvoke({"input": message})
 
 async def _generate_response_stream(message: str, context: str) -> AsyncGenerator[str, None]:
@@ -193,15 +199,16 @@ async def _generate_response_stream(message: str, context: str) -> AsyncGenerato
         HumanMessagePromptTemplate.from_template("{input}")
     ])
     
-    model = ChatOpenAI(
-        model="mistralai/mixtral-8x7b-instruct",
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-        temperature=0.6,
+    client = ChatOpenAI(
+        base_url=GITHUB_ENDPOINT,
+        api_key=GITHUB_TOKEN,
+        model=GITHUB_MODEL,
+        temperature=1.0,
+        top_p=1.0,
         streaming=True
     )
     
-    chain = prompt | model | StrOutputParser()
+    chain = prompt | client | StrOutputParser()
     async for chunk in chain.astream({"input": message}):
         yield chunk
 
