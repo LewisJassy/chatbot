@@ -38,7 +38,6 @@ async def get_rabbitmq_connection() -> aio_pika.RobustConnection:
     global rabbitmq_connection_pool
     if not rabbitmq_connection_pool:
         rabbitmq_connection_pool = await aio_pika.connect_robust(RABBITMQ_URL)
-    print(rabbitmq_connection_pool)
     return rabbitmq_connection_pool
 
 async def verify_token(token: HTTPAuthorizationCredentials = Depends(security)) -> dict:
