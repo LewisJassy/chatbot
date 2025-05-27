@@ -1,5 +1,5 @@
 from preprocessing import preprocess_text
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from langchain_pinecone import PineconeVectorStore
 from langchain_huggingface import HuggingFaceEmbeddings
 import pinecone  # Import the module, not the class
@@ -8,6 +8,8 @@ from models import SimilaritySearchRequest
 import os
 from dotenv import load_dotenv
 import logging
+from pydantic import BaseModel
+
 app = FastAPI()
 load_dotenv()
 
@@ -46,6 +48,13 @@ vector_store = PineconeVectorStore(
     embedding=EMBEDDINGS,
 )
 
+class UpsertHistoryRequest(BaseModel):
+    user_id: str
+    message: str
+    response: str
+    timestamp: str  # ISO format
+    role: str = "user"  # Optional, default to 'user'
+
 @app.get("/health")  
 async def health_check():  
     """Health check endpoint"""  
@@ -70,4 +79,31 @@ async def similarity_search(request: SimilaritySearchRequest):
         )  
     except Exception as e:  
         logger.error(f"Error during similarity search: {str(e)}")  
-        raise HTTPException(status_code=500, detail=f"Error performing similarity search: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error performing similarity search: {str(e)}")
+
+@app.post("/upsert-history")
+async def upsert_history(request: UpsertHistoryRequest):
+    try:
+        # Combine message and response for embedding
+        text = f"{request.message} {request.response}"
+        preprocessed_text = preprocess_text(text)
+        embedding = EMBEDDINGS.embed_query(preprocessed_text)
+        # Use a unique id (user_id + timestamp)
+        vector_id = f"{request.user_id}_{request.timestamp}"
+        # Upsert into Pinecone
+        vector_store.add_texts(
+            texts=[preprocessed_text],
+            metadatas=[{
+                "user_id": request.user_id,
+                "message": request.message,
+                "response": request.response,
+                "timestamp": request.timestamp,
+                "role": request.role
+            }],
+            ids=[vector_id],
+        )
+        logger.info(f"Upserted conversation for user {request.user_id} at {request.timestamp}")
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error during upsert: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error upserting history: {str(e)}")

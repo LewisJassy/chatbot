@@ -9,6 +9,7 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
+import httpx
 
 load_dotenv()
 
@@ -23,6 +24,8 @@ DB_CONFIG = {
     "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
     "database": os.getenv("POSTGRES_DB", "chat_history")
 }
+
+VECTOR_SERVICES_URL = os.getenv("VECTOR_SERVICES_URL", "http://localhost:82/upsert-history")
 
 class ChatHistoryCreate(BaseModel):
     user_id: str
@@ -91,6 +94,21 @@ async def save_history(history: ChatHistoryCreate):
                 history.timestamp
             )
         logger.info(f"Saved history for user {history.user_id}")
+        # Upsert to vector DB
+        try:
+            async with httpx.AsyncClient() as client:
+                payload = {
+                    "user_id": history.user_id,
+                    "message": history.message,
+                    "response": history.response,
+                    "timestamp": history.timestamp.isoformat(),
+                    "role": "user"
+                }
+                resp = await client.post(VECTOR_SERVICES_URL, json=payload, timeout=10)
+                resp.raise_for_status()
+                logger.info(f"Upserted history to vector DB for user {history.user_id}")
+        except Exception as e:
+            logger.error(f"Failed to upsert to vector DB: {e}")
     except asyncpg.PostgresError as e:
         logger.error(f"Database error saving history: {str(e)}")
         raise
