@@ -95,7 +95,7 @@ async def handle_chat(
         bot_response = await _generate_response(request.message, context_str)
         background_tasks.add_task(
             _log_interaction,
-            user_id=user_id,
+            user_id=str(user_id),
             user_input=request.message,
             bot_response=bot_response
         )
@@ -124,9 +124,8 @@ async def _stream_generator(message: str, context: str, user_id: str) -> AsyncGe
             full_response.append(chunk)
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
         
-        # Log complete interaction after streaming finishes
         await _log_interaction(
-            user_id=user_id,
+            user_id=str(user_id),
             user_input=message,
             bot_response="".join(full_response)
         )
@@ -219,18 +218,20 @@ async def _log_interaction(user_id: str, user_input: str, bot_response: str):
         # Declare queue to ensure it exists
         await channel.declare_queue("chat_history", durable=True)
         
+        message_data = {
+            "user_id": user_id,
+            "message": user_input,
+            "response": bot_response,
+            "timestamp": datetime.now().isoformat()
+        }
+        
         await channel.default_exchange.publish(
             aio_pika.Message(
-                body=json.dumps({
-                    "user_id": user_id,
-                    "message": user_input,
-                    "response": bot_response,
-                    "timestamp": datetime.now().isoformat()
-                }).encode(),
+                body=json.dumps(message_data).encode(),
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT  # Make message persistent
             ),
             routing_key="chat_history"
         )
-        logger.info(f"Logged interaction for user {user_id}")
+        logger.info(f"Successfully logged interaction for user {user_id} to RabbitMQ queue")
     except Exception as e:
-        logger.error(f"Failed to log interaction: {str(e)}")
+        logger.error(f"Failed to log interaction for user {user_id}: {str(e)}", exc_info=True)

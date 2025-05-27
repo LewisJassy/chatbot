@@ -44,13 +44,33 @@ async def lifespan(app: FastAPI):
     )
     logger.info("Database connection pool established")
     
-    # Start RabbitMQ consumer in background
-    background_tasks = BackgroundTasks()
-    background_tasks.add_task(consume_messages)
+    # Create table if it doesn't exist
+    async with connection_pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_history (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                response TEXT NOT NULL,
+                timestamp TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_timestamp ON chat_history(timestamp);")
+    logger.info("Database table and indexes ensured")
+    
+    # Start RabbitMQ consumer in background - FIXED: use asyncio.create_task
+    consumer_task = asyncio.create_task(consume_messages())
     
     yield
     
     # Cleanup
+    consumer_task.cancel()
+    try:
+        await consumer_task
+    except asyncio.CancelledError:
+        pass
     await connection_pool.close()
     logger.info("Database connection pool closed")
 
@@ -83,6 +103,7 @@ async def consume_messages():
     
     app.state.shutdown_handlers = app.state.shutdown_handlers if hasattr(app.state, "shutdown_handlers") else []
     app.state.shutdown_handlers.append(shutdown_handler)
+    
     while not shutdown_event.is_set():
         try:
             connection = await aio_pika.connect_robust(
@@ -90,13 +111,16 @@ async def consume_messages():
             )
             channel = await connection.channel()
             queue = await channel.declare_queue("chat_history", durable=True)
+            logger.info("Connected to RabbitMQ and declared queue")
 
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:
                     if shutdown_event.is_set():
                         break
-                    async with message.process():
-                        try:
+                    
+                    try:
+                        # Use process() context manager which handles ack/nack automatically
+                        async with message.process():
                             data = json.loads(message.body.decode())
                             history = ChatHistoryCreate(
                                 user_id=data["user_id"],
@@ -105,25 +129,24 @@ async def consume_messages():
                                 timestamp=datetime.fromisoformat(data["timestamp"])
                             )
                             await save_history(history)
-                            # Only acknowledge after successful processing
-                            await message.ack()
-                        except json.JSONDecodeError:
-                            logger.error(f"Invalid JSON in message: {message.body.decode()}")
-                            # Reject the message as it cannot be processed
-                            await message.reject(requeue=False)
-                        except KeyError as e:
-                            logger.error(f"Missing required field in message: {e}")
-                            # Reject the message as it is malformed
-                            await message.reject(requeue=False)
-                        except Exception as e:
-                            logger.error(f"Error processing message: {str(e)}")
-                            # Requeue the message for retry
-                            await message.reject(requeue=True)
-                    
+                            logger.info(f"Successfully processed message for user {data['user_id']}")
+                            
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Invalid JSON in message: {message.body.decode()}")
+                        logger.error(f"JSONDecodeError: {e}")
+                        raise
+                    except KeyError as e:
+                        logger.error(f"Missing required field in message: {e}")
+                        logger.error(f"Full message body: {message.body.decode()}")
+                        raise
+                    except Exception as e:
+                        logger.error(f"Error processing message: {str(e)}")
+                        logger.error(f"Full message body: {message.body.decode()}")
+                        raise
 
         except Exception as e:
             logger.error(f"RabbitMQ connection error: {str(e)}")
-            await asyncio.sleep(5)  # Wait before reconnecting
+            await asyncio.sleep(5)
 
 @app.get("/history/{user_id}")  
 async def get_user_history(user_id: str):  
