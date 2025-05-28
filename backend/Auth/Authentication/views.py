@@ -18,7 +18,14 @@ JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 JWT_ALGORITHM = os.getenv("HS256")
 
 class UserRegistrationView(APIView):
-    """Handle user registration with token creation"""
+    """
+    API endpoint for user registration.
+
+    Accepts POST requests with user registration data, validates the input using
+    UserRegistrationSerializer, and creates a new user account. On successful registration,
+    returns a success message with HTTP 201 status. If registration fails due to validation
+    errors or server issues, returns an appropriate error message and status code.
+    """
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
         
@@ -41,7 +48,15 @@ class UserRegistrationView(APIView):
         
         
 class UserLoginView(APIView):
-    """Handle user login and token authentication"""
+    """
+    API endpoint for user login and JWT token authentication.
+
+    Accepts POST requests with user credentials (email and password), validates the input
+    using UserLoginSerializer, and authenticates the user. On successful authentication,
+    returns access and refresh JWT tokens, user ID, and email. Also sets the refresh token
+    as an HTTP-only cookie, with duration based on the 'remember_me' flag. Returns error
+    messages and appropriate status codes for invalid credentials or input errors.
+    """
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if not serializer.is_valid():
@@ -90,7 +105,13 @@ class UserLoginView(APIView):
         return response
 
 class AuthStatusView(APIView):
-    """Check if the user is authenticated"""
+    """
+    API endpoint to check user authentication status.
+
+    Requires a valid JWT token. Accepts GET requests and returns the authentication
+    status along with the user's ID and email if authenticated. Used to verify if the
+    current session is authenticated.
+    """
     permission_classes = (IsAuthenticated,)
     
     def get(self, request):
@@ -104,7 +125,13 @@ class AuthStatusView(APIView):
         })
 
 class UserLogoutView(APIView):
-    """Logout user and blacklist the refresh token"""
+    """
+    API endpoint to log out a user and blacklist the refresh token.
+
+    Requires authentication. Accepts POST requests with a refresh token, blacklists the
+    provided token to prevent further use, and returns a success message. Handles invalid
+    or missing tokens and unexpected errors with appropriate error responses and status codes.
+    """
     authentication_classes = (JWTAuthentication,)
     permission_classes = (IsAuthenticated,)
 
