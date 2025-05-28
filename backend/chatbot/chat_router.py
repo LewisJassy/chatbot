@@ -35,12 +35,20 @@ GITHUB_MODEL = "openai/gpt-4.1"
 rabbitmq_connection_pool = None
 
 async def get_rabbitmq_connection() -> aio_pika.RobustConnection:
+    """
+    Establish and return a robust connection to RabbitMQ.
+    Reuses the existing connection if already established.
+    """
     global rabbitmq_connection_pool
     if not rabbitmq_connection_pool:
         rabbitmq_connection_pool = await aio_pika.connect_robust(RABBITMQ_URL)
     return rabbitmq_connection_pool
 
 async def verify_token(token: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """
+    Verify the provided JWT token by querying the authentication service.
+    Returns user information if the token is valid.
+    """
     token_str = token.credentials
     try:
         async with httpx.AsyncClient(timeout=5) as client:
@@ -73,6 +81,11 @@ async def handle_chat(
     background_tasks: BackgroundTasks,
     user_info: dict = Depends(verify_token)
 ):
+    """
+    Handle incoming chat requests.
+    Processes the message, retrieves context, generates a response,
+    and logs the interaction.
+    """
     user_id = user_info.get("user", {}).get("id")
     
     try:
@@ -117,6 +130,10 @@ async def handle_chat(
         )
 
 async def _stream_generator(message: str, context: str, user_id: str) -> AsyncGenerator[str, None]:
+    """
+    Generate a streaming response for the chat message.
+    Yields chunks of the bot's reply in real-time.
+    """
     full_response = []
     
     try:
@@ -137,6 +154,10 @@ async def _stream_generator(message: str, context: str, user_id: str) -> AsyncGe
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def _call_vector_service(query: str, role: str) -> dict:
+    """
+    Call the vector service to perform a similarity search based on the query and role.
+    Retries the request up to 3 times in case of failure.
+    """
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.post(
@@ -153,6 +174,10 @@ async def _call_vector_service(query: str, role: str) -> dict:
         )
 
 def _build_context(docs: list) -> str:
+    """
+    Build a context string from the list of documents.
+    Ensures the total token count does not exceed the maximum allowed.
+    """
     context_messages = []
     current_tokens = 0
     for doc in docs:
@@ -173,6 +198,9 @@ def _build_context(docs: list) -> str:
     return "\n".join(context_messages) if context_messages else "No relevant history found"
 
 async def _generate_response(message: str, context: str) -> str:
+    """
+    Generate a response from the AI model using the provided message and context.
+    """
     system_prompt = f"Relevant history:\n{context}\n\nCurrent conversation:"
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system_prompt),
@@ -191,6 +219,9 @@ async def _generate_response(message: str, context: str) -> str:
     return await chain.ainvoke({"input": message})
 
 async def _generate_response_stream(message: str, context: str) -> AsyncGenerator[str, None]:
+    """
+    Stream the AI model's response in chunks for real-time applications.
+    """
     system_prompt = f"Relevant history:\n{context}\n\nCurrent conversation:"
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system_prompt),
@@ -211,6 +242,9 @@ async def _generate_response_stream(message: str, context: str) -> AsyncGenerato
         yield chunk
 
 async def _log_interaction(user_id: str, user_input: str, bot_response: str):
+    """
+    Log the user-bot interaction by publishing the data to a RabbitMQ queue.
+    """
     try:
         connection = await get_rabbitmq_connection()
         channel = await connection.channel()
@@ -228,7 +262,7 @@ async def _log_interaction(user_id: str, user_input: str, bot_response: str):
         await channel.default_exchange.publish(
             aio_pika.Message(
                 body=json.dumps(message_data).encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT  # Make message persistent
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
             ),
             routing_key="chat_history"
         )
