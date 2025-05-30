@@ -110,28 +110,30 @@ export default function LoginRegister({ onLogin }) {
     if (!validateForm()) {
       setIsLoading(false);
       return;
-    }    try {
+    }
+
+    try {
       const data = await handleAuthRequest();
-        if (isLoginMode) {
+      if (isLoginMode) {
         // Store tokens for login
         setAuthTokens(data.access_token, data.refresh_token, rememberMe);
-        
+
         // Update auth state immediately
-        onLogin({ 
-          email: data.email || formData.email.trim(), 
+        onLogin({
+          email: data.email || formData.email.trim(),
           name: data.name || "User",
-          id: data.user_id 
+          id: data.user_id
         });
-        
+
         setIsSuccess(true);
-        
+
         // Quick redirect with just enough time to show success message
         setTimeout(() => {
           if (isMounted.current) {
             navigate("/chat", { replace: true });
           }
         }, 300);
-      }else {
+      } else {
         // Registration successful
         setIsSuccess(true);
         setTimeout(() => {
@@ -146,19 +148,17 @@ export default function LoginRegister({ onLogin }) {
           }
         }, 1500);
       }
-    }catch (err) {
+    } catch (err) {
       setError(
-        err.response?.data?.error || 
+        err.response?.data?.error ||
         err.response?.data?.message ||
-        (isLoginMode 
-          ? "Failed to login. Please check your credentials." 
+        (isLoginMode
+          ? "Failed to login. Please check your credentials."
           : "Failed to register. Please try again.")
       );
       console.error("Authentication error:", err);
     } finally {
-      if (isMounted.current) {
-        setIsLoading(false);
-      }
+      setIsLoading(false); // Reset loading state unconditionally
     }
   }, [formData, isLoginMode, validateForm, handleAuthRequest, navigate, onLogin, toggleMode, rememberMe]);
   return (
