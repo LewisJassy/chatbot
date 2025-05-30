@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { CheckCircle, ThumbsUp, Loader2, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
-import { authAPI, setAuthTokens, clearAuthTokens } from "./utils/axios";
+import { authAPI, setAuthTokens } from "./utils/axios";
 import { useNavigate } from "react-router-dom";
 
 // Validation constants

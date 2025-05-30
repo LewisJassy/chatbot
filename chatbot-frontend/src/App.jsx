@@ -31,7 +31,8 @@ export default function App() {
     };
 
     checkAuth();
-  }, []);const handleLogin = (userData) => {
+  }, []);
+  const handleLogin = () => {
     setIsAuthenticated(true);
   };
 
