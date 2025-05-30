@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import axios from "./utils/axios";
+import PropTypes from "prop-types";
+import { chatAPI, authAPI, getAuthToken, clearAuthTokens } from "./utils/axios";
 import Sidebar from "./Sidebar";
 import ChatWindow from "./ChatWindow";
+import { useNavigate } from "react-router-dom";
 
-export default function Chat() {
+export default function Chat({ onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [newChat, setNewChat] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
 
   // Handle window resize for responsive sidebar
   useEffect(() => {
@@ -35,14 +38,14 @@ export default function Chat() {
   };
 
   useEffect(scrollToBottom, [messages]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    const token = localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
-      alert("Please log in to continue.");
+      onLogout();
+      navigate("/login", { replace: true });
       return;
     }
 
@@ -51,23 +54,38 @@ export default function Chat() {
     setInputMessage("");
 
     try {
-      const response = await axios.post(
-        "chat/",
-        { message: inputMessage },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const botMessage = { text: response.data.bot_response, isUser: false };
+      const response = await chatAPI.post("api/chat/", { 
+        message: inputMessage 
+      });
+      
+      const botMessage = { text: response.data.bot_response || response.data.response, isUser: false };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
       if (err.response?.status === 401) {
-        alert("Session expired. Please log in again.");
+        clearAuthTokens();
+        onLogout();
+        navigate("/login", { replace: true });
       } else {
         console.error("Error communicating with the backend:", err);
+        const errorMessage = { 
+          text: "Sorry, I'm having trouble connecting. Please try again.", 
+          isUser: false 
+        };
+        setMessages((prev) => [...prev, errorMessage]);
       }
+    }
+  };
+  const handleLogout = async () => {
+    try {
+      await authAPI.post("/auth/logout/", {
+        refresh_token: localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token')
+      });
+    } catch (error) {
+      console.debug("Logout error:", error);
+    } finally {
+      clearAuthTokens();
+      onLogout();
+      navigate("/login", { replace: true });
     }
   };
 
@@ -77,6 +95,7 @@ export default function Chat() {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         startNewChat={startNewChat}
+        onLogout={handleLogout}
       />
       <ChatWindow
         sidebarOpen={sidebarOpen}
@@ -92,3 +111,7 @@ export default function Chat() {
     </div>
   );
 }
+
+Chat.propTypes = {
+  onLogout: PropTypes.func.isRequired,
+};

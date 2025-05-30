@@ -9,15 +9,14 @@ import {
 } from "lucide-react";
 import PropTypes from 'prop-types';
 import { saveChatHistory, loadChatHistory } from './utils/axios';
-import { useNavigate } from "react-router-dom";
 
 export default function Sidebar({
   sidebarOpen,
   setSidebarOpen,
   startNewChat,
+  onLogout,
 }) {
   const [chatHistory, setChatHistory] = useState([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     let history = loadChatHistory();
@@ -25,12 +24,11 @@ export default function Sidebar({
     setChatHistory(history);
   }, []);
 
-  const handleLogout = (label) => {
+  const handleMenuClick = (label) => {
     if (label === "Logout") {
-      localStorage.clear();
-      sessionStorage.clear();
-      navigate("/login");
+      onLogout();
     }
+    // Add other menu handlers here as needed
   };
 
   const handleNewChat = () => {
@@ -40,11 +38,11 @@ export default function Sidebar({
     setChatHistory(updatedHistory);
     saveChatHistory(updatedHistory);
   };
-
   Sidebar.propTypes = {
     sidebarOpen: PropTypes.bool.isRequired,
     setSidebarOpen: PropTypes.func.isRequired,
     startNewChat: PropTypes.func.isRequired,
+    onLogout: PropTypes.func.isRequired,
   };
 
   return (
@@ -98,7 +96,7 @@ export default function Sidebar({
             <div
               key={index}
               className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-700/50 cursor-pointer transition-colors duration-200"
-              onClick={() => handleLogout(item.label)}
+              onClick={() => handleMenuClick(item.label)}
             >
               {item.icon}
               <span>{item.label}</span>
