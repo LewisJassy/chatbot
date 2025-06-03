@@ -72,7 +72,7 @@ class UserLoginView(APIView):
         cached_user = redis_client.get(cache_key)
         
         user = None
-        if cached_user:
+        if cached_user != None:
             try:
                 user_data = json.loads(cached_user)
                 # Validate cached credentials
@@ -93,20 +93,20 @@ class UserLoginView(APIView):
                 return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
             
             # Cache valid authentication
-            try:
-                user_data = {
-                    # 'id': user.pk,
-                    'email': user.email,
-                    'password': password
-                }
-                redis_client.setex(
-                    cache_key, 
-                    self.USER_CACHE_TTL, 
-                    json.dumps(user_data)
-                )
-                logger.info(f"User {email} authenticated via DB and cached")
-            except redis.RedisError as e:
-                logger.error(f"Redis cache error: {str(e)}")
+        try:
+            user_data = {
+                # 'id': user.pk,
+                'email': user.email,
+                'password': password
+            }
+            redis_client.setex(
+                cache_key, 
+                self.USER_CACHE_TTL, 
+                json.dumps(user_data)
+            )
+            logger.info(f"User {email} authenticated via DB and cached")
+        except redis.RedisError as e:
+            logger.error(f"Redis cache error: {str(e)}")
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
