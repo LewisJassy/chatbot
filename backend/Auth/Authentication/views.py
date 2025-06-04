@@ -84,7 +84,7 @@ class UserLoginView(APIView):
                 'password_hash': user.password,
                 'is_active': user.is_active
             }
-            # Use pipeline for atomic operation
+            
             pipe = redis_client.pipeline()
             pipe.setex(cache_key, self.USER_CACHE_TTL, json.dumps(user_data))
             pipe.execute()
@@ -92,7 +92,6 @@ class UserLoginView(APIView):
         except redis.RedisError as e:
             logger.warning(f"Failed to cache user data for {user.email}: {e}")
     def post(self, request):
-        # Minimal validation for speed
         email = request.data.get('email', '').lower().strip()
         password = request.data.get('password', '')
         
@@ -100,21 +99,17 @@ class UserLoginView(APIView):
             return Response({'error': 'Email and password are required'}, 
                           status=status.HTTP_400_BAD_REQUEST)
 
-        # Try cache-first authentication
         cached_user_data = self._get_cached_user_data(email)
         user = None
         
         if cached_user_data and cached_user_data.get('is_active', True):
-            # Fast password verification using cached hash
             if check_password(password, cached_user_data.get('password_hash', '')):
                 try:
-                    # Create user object from cache data - no DB query needed
                     user = UserModel(
                         pk=cached_user_data['id'],
                         email=cached_user_data['email'],
                         is_active=cached_user_data.get('is_active', True)
                     )
-                    # Set the password field for JWT token generation
                     user.password = cached_user_data.get('password_hash', '')
                     logger.info(f"User {email} authenticated via cache")
                 except Exception as e:
@@ -125,7 +120,6 @@ class UserLoginView(APIView):
         if not user:
             user = authenticate(request, username=email, password=password)
             if user and user.is_active:
-                # Cache for next time
                 self._cache_user_data(user)
                 logger.info(f"User {email} authenticated via database")
 
@@ -133,7 +127,6 @@ class UserLoginView(APIView):
             return Response({'error': 'Invalid credentials'}, 
                           status=status.HTTP_401_UNAUTHORIZED)
 
-        # Generate tokens efficiently
         refresh = RefreshToken.for_user(user)
         
         response_data = {
@@ -145,7 +138,6 @@ class UserLoginView(APIView):
 
         response = Response(response_data)
 
-        # Set cookie efficiently
         cookie_age = 2592000 if request.data.get('remember_me') else 86400  # 30 days or 1 day in seconds
         response.set_cookie(
             'refresh_token',
@@ -224,7 +216,6 @@ class UserLogoutView(APIView):
             except Exception as e:
                 logger.error(f"Unexpected error during token blacklisting: {e}")
         
-        # Submit to shared thread pool for non-blocking execution
         _shared_executor.submit(blacklist_worker)
 
     def post(self, request):
@@ -232,7 +223,6 @@ class UserLogoutView(APIView):
             user_id = request.user.id
             email = request.user.email
             
-            # Get refresh token from multiple sources efficiently
             refresh_token = (
                 request.data.get("refresh_token") or 
                 request.COOKIES.get('refresh_token')
