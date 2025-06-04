@@ -25,7 +25,7 @@ UserModel = get_user_model()
 redis_client = redis.Redis(
     host=os.getenv('REDIS_HOST', 'localhost'),
     port=os.getenv('REDIS_PORT', 6379),
-    db=os.getenv('REDIS_DB', 0),
+    db=os.getenv('REDIS_DB', 1),
     decode_responses=True
 )
 
