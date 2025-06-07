@@ -2,7 +2,7 @@ import axios from "axios";
 
 // API Endpoints configuration
 const AUTH_API_URL = "http://127.0.0.1:8000";
-const CHAT_API_URL = "http://localhost:81";
+const CHAT_API_URL = "http://localhost:8001⁠";
 
 // Create separate instances for auth and chat
 export const authAPI = axios.create({
