@@ -28,6 +28,8 @@ ENV PATH=/root/.local/bin:$PATH
 # Copy application code
 COPY . .
 
+RUN pip install --no-cache-dir uvicorn
+
 EXPOSE 8003
 ENV PYTHONUNBUFFERED=1
 
