@@ -15,6 +15,8 @@ RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt && \
 
 # Final stage
 FROM python:3.12-slim
+ARG SECRET_KEY
+ENV SECRET_KEY=${SECRET_KEY}
 WORKDIR /app
 
 # Install runtime dependencies
