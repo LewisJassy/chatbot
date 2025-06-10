@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
@@ -16,7 +16,6 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import AIMessage, HumanMessage
 from langchain_redis import RedisChatMessageHistory
 
 # Models
@@ -41,6 +40,7 @@ rabbitmq_connection_pool = None
 
 # Establish RabbitMQ connection
 async def get_rabbitmq_connection() -> aio_pika.RobustConnection:
+    """Get or create a global RabbitMQ connection pool for publishing messages."""
     global rabbitmq_connection_pool
     if not rabbitmq_connection_pool:
         rabbitmq_connection_pool = await aio_pika.connect_robust(RABBITMQ_URL)
@@ -48,6 +48,9 @@ async def get_rabbitmq_connection() -> aio_pika.RobustConnection:
 
 # Token verification
 async def verify_token(token: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Verify JWT token via the authentication service and return user info payload.
+
+    Raises HTTPException if token is invalid or service is unavailable."""
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             response = await client.get(
@@ -65,6 +68,7 @@ async def verify_token(token: HTTPAuthorizationCredentials = Depends(security)) 
 
 # Redis chat history
 def get_redis_history(session_id: str) -> BaseChatMessageHistory:
+    """Return a Redis-based chat history store for the given session ID with 1-day TTL."""
     return RedisChatMessageHistory(
         session_id=session_id,
         redis_url=REDIS_URL,  # Use redis_url instead of url
@@ -75,6 +79,8 @@ def get_redis_history(session_id: str) -> BaseChatMessageHistory:
 # Chat endpoint
 @router.post("/chat", response_model=ChatResponse)
 async def handle_chat(request: ChatRequest, background_tasks: BackgroundTasks, user_info: dict = Depends(verify_token)):
+    """Main chat endpoint: handles user message, retrieves context, generates response (streamed or not),
+stores history, and logs interaction asynchronously."""
     user_id = user_info.get("user", {}).get("id")
     history = get_redis_history(str(user_id))
     try:
@@ -106,6 +112,7 @@ async def handle_chat(request: ChatRequest, background_tasks: BackgroundTasks, u
 
 # Streaming generator
 async def _stream_generator(message: str, context: str, user_id: str, history: RedisChatMessageHistory) -> AsyncGenerator[str, None]:
+    """Generator for streaming chat responses as Server-Sent Events, logs complete response after streaming."""
     full_response = []
     try:
         async for chunk in _generate_response_stream(message, context, history):
@@ -120,6 +127,7 @@ async def _stream_generator(message: str, context: str, user_id: str, history: R
 # Vector similarity
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def _call_vector_service(query: str, role: str) -> dict:
+    """Call the vector service for similarity search, retrying up to 3 times on failure."""
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(
             f"{VECTOR_SERVICE_URL}/similarity-search",
@@ -130,6 +138,7 @@ async def _call_vector_service(query: str, role: str) -> dict:
 
 # Build context from vector results
 def _build_context(docs: list) -> str:
+    """Assemble a context string from vector results, respecting maximum token limits."""
     context_messages = []
     current_tokens = 0
     for doc in docs:
@@ -146,6 +155,7 @@ def _build_context(docs: list) -> str:
 
 # Generate non-streamed response
 async def _generate_response(message: str, context: str) -> str:
+    """Generate a non-streamed chatbot response using the configured LLM chain."""
     system_prompt = f"Relevant history:\n{context}\n\nCurrent conversation:"
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system_prompt),
@@ -163,6 +173,7 @@ async def _generate_response(message: str, context: str) -> str:
 
 # Generate streamed response
 async def _generate_response_stream(message: str, context: str, history: RedisChatMessageHistory) -> AsyncGenerator[str, None]:
+    """Generate a streamed chatbot response chunk by chunk with history tracking."""
     chat_history = history.messages[-10:]
     system_prompt = f"Context: {context}\nChat History: {chat_history}\nCurrent Conversation:"
     prompt = ChatPromptTemplate.from_messages([
@@ -183,6 +194,7 @@ async def _generate_response_stream(message: str, context: str, history: RedisCh
 
 # Log interaction to RabbitMQ
 async def _log_interaction(user_id: str, user_input: str, bot_response: str):
+    """Publish the chat interaction to RabbitMQ queue 'chat_history' for persistence."""
     try:
         connection = await get_rabbitmq_connection()
         channel = await connection.channel()
