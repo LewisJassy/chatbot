@@ -2,10 +2,12 @@
 FROM python:3.12-slim AS builder
 WORKDIR /app
 
+# Install build dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libffi-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Copy requirements and install Python dependencies
 COPY requirements.txt ./
 RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt && \
     pip install --upgrade pip && \
@@ -17,13 +19,15 @@ ARG SECRET_KEY
 ENV SECRET_KEY=${SECRET_KEY}
 WORKDIR /app
 
+# Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libffi-dev libssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Copy installed packages from builder
 COPY --from=builder /usr/local /usr/local
 
-
+# Copy application code
 COPY . .
 
 EXPOSE 8000
