@@ -27,6 +27,7 @@ RUN apt-get update && \
 # Copy installed packages from builder
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/root/.local/lib/python3.12/site-packages:$PYTHONPATH
 
 # Copy application code
 COPY . .
