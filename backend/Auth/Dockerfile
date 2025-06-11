@@ -9,10 +9,11 @@ RUN apt-get update && \
 
 # Copy requirements and inject necessary fixes
 COPY requirements.txt ./
-RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt && \
+RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt || true && \
     echo "argon2-cffi" >> requirements.txt && \
     pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt  
+    pip install --no-cache-dir -r requirements.txt
+  
 # Final stage
 FROM python:3.12-slim
 WORKDIR /app
