@@ -1,0 +1,128 @@
+services:
+<<<<<<< Updated upstream:backend/docker-compose.yml
+  postgres:
+    image: postgres:17
+    container_name: postgres
+=======
+  chatbot_history:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/chatbot_history/.env
+>>>>>>> Stashed changes:docker-compose.yml
+    ports:
+      - "5432:5432"
+    environment:
+<<<<<<< Updated upstream:backend/docker-compose.yml
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    container_name: redis-stack-server
+=======
+      - PYTHONUNBUFFERED=1
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
+    networks:
+      - app-network
+    tty: true # tty and stdin are used to keep the container running interactively but is okay for development disable when pushed to prod
+    stdin_open: true
+
+  chatbot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/chatbot/.env
+>>>>>>> Stashed changes:docker-compose.yml
+    ports:
+      - "6379:6379"
+
+<<<<<<< Updated upstream:backend/docker-compose.yml
+  auth-service:
+    image: authentication-service:latest
+=======
+  auth:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+>>>>>>> Stashed changes:docker-compose.yml
+    env_file:
+      - ./backend/Auth/Auth/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+<<<<<<< Updated upstream:backend/docker-compose.yml
+      - postgres
+      - redis-stack
+    
+  chatbot-service:
+    image: chatbot-service:latest
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+  chatbot-historys:
+    image: chatbot_history:latest
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+  vector_service:
+    image: vector-service:latest
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+volumes:
+  postgres_data:
+=======
+      - auth
+      - chatbot
+      - chatbot_history
+    volumes:
+      - ./backend/ngrok.yml:/etc/ngrok.yml
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    command: start --all --config /etc/ngrok.yml
+    ports:
+      - "4040:4040"
+    networks:
+      - app-network
+  
+  #frontend:
+  #  build: 
+  #    context: ./chatbot-frontend
+  #    dockerfile: Dockerfile
+  #  container_name: chatbot_frontend
+  #  ports:
+  #    - "3000:3000"
+  #  volumes:
+  #    - .:/app
+  #  restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+>>>>>>> Stashed changes:docker-compose.yml

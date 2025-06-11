@@ -1,15 +1,12 @@
-version: "2"
+version: 2
 authtoken: ${NGROK_AUTHTOKEN}
 tunnels:
   auth:
+    addr: http://auth:8000
     proto: http
-    addr: auth:8000
-    bind_tls: true
   chatbot:
+    addr: http://chatbot:8001
     proto: http
-    addr: chatbot:8001
-    bind_tls: true
   history:
+    addr: http://chatbot_history:8003
     proto: http
-    addr: chatbot_history:8003
-    bind_tls: true
