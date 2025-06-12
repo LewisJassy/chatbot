@@ -39,6 +39,6 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1
 
 # Install gunicorn separately in final image
-RUN pip install --no-cache-dir gunicorn
+RUN pip install --no-cache-dir gunicorn argon2-cffi
 
 CMD ["gunicorn", "Auth.wsgi:application", "--bind", "0.0.0.0:8000"]
