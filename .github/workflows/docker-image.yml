@@ -24,7 +24,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: postgres
-          POSTGRES_HOST: postgres
+          POSTGRES_HOST: localhost
         ports:
           - 5432:5432
         options: >-
