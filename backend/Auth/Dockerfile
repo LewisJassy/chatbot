@@ -16,7 +16,8 @@ RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt || tru
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install --user --no-cache-dir -r requirements.txt
+    RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Final stage
 FROM python:3.12-slim
