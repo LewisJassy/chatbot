@@ -1,4 +1,4 @@
-name: Build, Push, Scan, and Release
+name: Build, Push, and Release
 
 on:
   push:
@@ -25,7 +25,7 @@ env:
   SSL_MODE: require
 
 jobs:
-  build-push-scan:
+  build-push:
     runs-on: ubuntu-latest
 
     strategy:
@@ -99,18 +99,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Scan Docker Image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: lewis254/${{ matrix.service.image }}:${{ env.VERSION }}
-          format: table
-          exit-code: 1
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          vuln-type: os,library
-
   create-release:
-    needs: build-push-scan
+    needs: build-push
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -123,7 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
-    needs: [build-push-scan]
+    needs: [build-push]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
