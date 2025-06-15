@@ -15,7 +15,9 @@ RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt || tru
     grep -q 'argon2-cffi' requirements.txt || echo 'argon2-cffi' >> requirements.txt
 
 # Install Python dependencies
-RUN pip install --upgrade pip && \
+RUN python -m venv /venv && \
+    . /venv/bin/activate && \
+    pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 
@@ -29,9 +31,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
-ENV PYTHONPATH=/root/.local/lib/python3.12/site-packages:$PYTHONPATH
+COPY --from=builder /venv /venv
+ENV PATH="/venv/bin:$PATH"
 
 # Copy app code
 COPY . .
