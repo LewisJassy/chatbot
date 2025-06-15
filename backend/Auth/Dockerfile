@@ -24,6 +24,7 @@ RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir wheel setuptools && \
+    python3 -m pip install argon2_cffi && \
     pip install --no-cache-dir -r requirements.txt
 
 # Final stage
