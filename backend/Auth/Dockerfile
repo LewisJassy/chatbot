@@ -10,9 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libssl-dev \
     build-essential \
-    pkg-config \
-    libffi-dev \
-    libargon2-dev && \
+    pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
