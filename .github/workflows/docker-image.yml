@@ -84,7 +84,7 @@ jobs:
           tags: |
             lewis254/${{ matrix.service.image }}:latest
             lewis254/${{ matrix.service.image }}:${{ github.sha }}
-            lewis254/${{ matrix.service.image }}:${{ steps.extract_version.outputs.version }}
+            lewis254/${{ matrix.service.image }}:${{ steps.extract_version.outputs.version || github.sha }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
