@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libssl-dev \
     build-essential \
+    ca-certificates \
     pkg-config && \
     rm -rf /var/lib/apt/lists/*
 

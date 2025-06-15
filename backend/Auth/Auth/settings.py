@@ -162,7 +162,7 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_PORT'),
         'CONN_MAX_AGE': 600,  # Connection pooling - keep connections alive for 10 minutes
         'OPTIONS': {
-            'sslmode': 'require'
+            'sslmode': 'very-full'
         }
     }
 }
