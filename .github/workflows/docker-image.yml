@@ -63,7 +63,7 @@ jobs:
           tags: |
             lewis254/authentication-service:latest
             lewis254/authentication-service:${{ github.sha }}
-            lewis254/authentication-service:${{ steps.extract_version.outputs.version }}
+            lewis254/authentication-service:${{ steps.extract_version.outputs.version != '' && steps.extract_version.outputs.version || github.sha }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -116,7 +116,7 @@ jobs:
           tags: |
             lewis254/chatbot-service:latest
             lewis254/chatbot-service:${{ github.sha }}
-            lewis254/chatbot-service:${{ steps.extract_version.outputs.version }}
+            lewis254/chatbot-service:${{ steps.extract_version.outputs.version != '' && steps.extract_version.outputs.version || github.sha }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -169,7 +169,7 @@ jobs:
           tags: |
             lewis254/chatbot-history-service:latest
             lewis254/chatbot-history-service:${{ github.sha }}
-            lewis254/chatbot-history-service:${{ steps.extract_version.outputs.version }}
+            lewis254/chatbot-history-service:${{ steps.extract_version.outputs.version != '' && steps.extract_version.outputs.version || github.sha }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -212,7 +212,7 @@ jobs:
           tags: |
             lewis254/vector-service:latest
             lewis254/vector-service:${{ github.sha }}
-            lewis254/vector-service:${{ steps.extract_version.outputs.version }}
+            lewis254/vector-service:${{ steps.extract_version.outputs.version != '' && steps.extract_version.outputs.version || github.sha }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
