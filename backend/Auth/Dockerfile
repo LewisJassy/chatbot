@@ -16,7 +16,7 @@ RUN sed -i 's/psycopg2==2.9.10/psycopg2-binary==2.9.10/' requirements.txt || tru
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    RUN pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 
 # Final stage
