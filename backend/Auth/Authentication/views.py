@@ -138,7 +138,7 @@ class UserLoginView(APIView):
 
         response = Response(response_data)
 
-        cookie_age = 2592000 if request.data.get('remember_me') else 86400  # 30 days or 1 day in seconds
+        cookie_age = 2592000 if request.data.get('remember_me') else 86400
         response.set_cookie(
             'refresh_token',
             str(refresh),
