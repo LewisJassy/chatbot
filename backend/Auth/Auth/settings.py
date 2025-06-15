@@ -32,16 +32,12 @@ DEBUG = True
 APPEND_SLASH=False
 
 ALLOWED_HOSTS = [
-    'https://chatbot-9s5v.onrender.com',
-    'chatbot-9s5v.onrender.com',
-    'chatbot.onrender.com',
     'localhost',
     '127.0.0.1',
     'http://localhost:3000',
     'lewisnjaci.tech',
     'www.lewisnjaci.tech',
     '*',
-    'https://chatbot-mohw.onrender.com'
 ]
 
 
