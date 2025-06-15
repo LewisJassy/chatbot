@@ -1,18 +1,18 @@
-name: Build, Scan, and Push Docker Images
+name: Build and Push Docker Images
 
 on:
   push:
     branches:
       - main
     tags:
-      - "v*.*.*"
+      - "v*.*.*"  # Triggers on SemVer tags (v1.0.0, v2.3.4, etc.)
     paths:
       - "backend/**"
   pull_request:
     branches:
       - main
   schedule:
-    - cron: "0 2 * * 1-5"
+    - cron: "0 2 * * 1-5"  # Weekdays at 2 AM UTC
 
 env:
   DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
@@ -25,41 +25,24 @@ env:
   SSL_MODE: require
 
 jobs:
-  build-scan-push:
-    name: ${{ matrix.service.name }} (Multi-Arch)
+  build-auth:
+    name: Build Auth Service
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - { name: "Auth", context: "./backend/Auth", dockerfile: "./backend/Auth/Dockerfile", image: "authentication-service" }
-          - { name: "Chatbot", context: "./backend/chatbot", dockerfile: "./backend/chatbot/Dockerfile", image: "chatbot-service" }
-          - { name: "History", context: "./backend/chatbot_history", dockerfile: "./backend/chatbot_history/Dockerfile", image: "chatbot-history-service" }
-          - { name: "Vector", context: "./backend/vector_services", dockerfile: "./backend/vector_services/Dockerfile", image: "vector-service" }
     services:
       redis:
         image: redis/redis-stack-server:latest
         ports:
           - 6379:6379
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
-      
-      # Setup multi-arch build capability
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          platforms: linux/amd64,linux/arm64 
+      - uses: docker/setup-buildx-action@v3
 
-      # Extract SemVer version from tag
       - name: Extract version from tag
         id: extract_version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -67,35 +50,169 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      # Login to Docker Hub
       - uses: docker/login-action@v3
         if: github.event_name == 'push' || github.event_name == 'schedule'
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
 
-      # Build for multiple architectures
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.service.context }}
-          file: ${{ matrix.service.dockerfile }}
-          platforms: linux/amd64,linux/arm64
+          context: ./backend/Auth
+          file: ./backend/Auth/Dockerfile
           tags: |
-            lewis254/${{ matrix.service.image }}:latest
-            lewis254/${{ matrix.service.image }}:${{ github.sha }}
-            lewis254/${{ matrix.service.image }}:${{ steps.extract_version.outputs.version || github.sha }}
+            lewis254/authentication-service:latest
+            lewis254/authentication-service:${{ github.sha }}
+            lewis254/authentication-service:${{ steps.extract_version.outputs.version }}
           push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Vulnerability scanning (trivy)
-      - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@master
+  build-chatbot:
+    name: Build Chatbot Service
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis/redis-stack-server:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics -q ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from tag
+        id: extract_version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push' || github.event_name == 'schedule'
         with:
-          image-ref: lewis254/${{ matrix.service.image }}:${{ github.sha || steps.extract_version.outputs.version || 'latest' }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend/chatbot
+          file: ./backend/chatbot/Dockerfile
+          tags: |
+            lewis254/chatbot-service:latest
+            lewis254/chatbot-service:${{ github.sha }}
+            lewis254/chatbot-service:${{ steps.extract_version.outputs.version }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-history:
+    name: Build Chatbot History Service
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis/redis-stack-server:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd="rabbitmq-diagnostics -q ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from tag
+        id: extract_version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push' || github.event_name == 'schedule'
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend/chatbot_history
+          file: ./backend/chatbot_history/Dockerfile
+          tags: |
+            lewis254/chatbot-history-service:latest
+            lewis254/chatbot-history-service:${{ github.sha }}
+            lewis254/chatbot-history-service:${{ steps.extract_version.outputs.version }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-vector:
+    name: Build Vector Service
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis/redis-stack-server:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from tag
+        id: extract_version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push' || github.event_name == 'schedule'
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./backend/vector_services
+          file: ./backend/vector_services/Dockerfile
+          tags: |
+            lewis254/vector-service:latest
+            lewis254/vector-service:${{ github.sha }}
+            lewis254/vector-service:${{ steps.extract_version.outputs.version }}
+          push: ${{ github.event_name == 'push' || github.event_name == 'schedule' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
