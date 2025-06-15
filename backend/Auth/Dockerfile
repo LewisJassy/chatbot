@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     libffi-dev \
     libssl-dev \
-    build-essential && \
+    build-essential \
+    pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
