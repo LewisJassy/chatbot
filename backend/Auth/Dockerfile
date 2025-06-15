@@ -5,11 +5,14 @@ WORKDIR /app
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
     python3-dev \
     libffi-dev \
     libssl-dev \
     build-essential \
-    pkg-config && \
+    pkg-config \
+    libffi-dev \
+    libargon2-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -22,8 +25,7 @@ RUN test -f requirements.txt || (echo "Requirements file missing" && exit 1)
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir wheel && \
-    { grep -q 'argon2-cffi' requirements.txt || pip install --no-cache-dir argon2-cffi; } && \
+    pip install --no-cache-dir wheel setuptools && \
     pip install --no-cache-dir -r requirements.txt
 
 # Final stage
