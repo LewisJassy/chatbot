@@ -42,6 +42,9 @@ COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
 ENV VIRTUAL_ENV="/venv"
 
+# Install argon2_cffi in final stage
+RUN python3 -m pip install argon2_cffi
+
 # Copy application code
 COPY . .
 
