@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Authentication',
     'corsheaders',
+    'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist'
 ]
@@ -165,8 +166,8 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_PORT'),
         'CONN_MAX_AGE': 600,  # Connection pooling - keep connections alive for 10 minutes
         'OPTIONS': {
-            'connect_timeout': 10,
-        },
+            'sslmode': 'require'
+        }
     }
 }
 
