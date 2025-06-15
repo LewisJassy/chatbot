@@ -17,23 +17,21 @@ COPY requirements.txt .
 # Verify requirements.txt exists
 RUN test -f requirements.txt || (echo "Requirements file missing" && exit 1)
 
-# Add argon2-cffi if not present
-RUN grep -q 'argon2-cffi' requirements.txt || echo 'argon2-cffi>=21.3.0' >> requirements.txt
-
 # Create virtual environment and install dependencies
 RUN python -m venv /venv
 ENV PATH="/venv/bin:$PATH"
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir wheel && \
+    { grep -q 'argon2-cffi' requirements.txt || pip install --no-cache-dir argon2-cffi; } && \
     pip install --no-cache-dir -r requirements.txt
 
 # Final stage
 FROM python:3.12-slim
 WORKDIR /app
 
-# Install runtime dependencies (corrected package names)
+# Install only essential runtime libraries (updated for Debian Bookworm)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libffi7 \
+    libffi8 \
     libssl3 && \
     rm -rf /var/lib/apt/lists/*
 
