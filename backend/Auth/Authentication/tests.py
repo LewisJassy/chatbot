@@ -71,7 +71,6 @@ class AuthStatusViewTests(APITestCase):
         response = self.client.get('/auth/status/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-
 class UserLogoutViewTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
