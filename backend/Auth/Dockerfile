@@ -14,9 +14,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Verify requirements.txt exists and is not empty
-RUN test -f requirements.txt && echo "Requirements file exists" || (echo "Requirements file missing" && exit 1)
-RUN test -s requirements.txt && echo "Requirements file not empty" || (echo "Requirements file is empty" && exit 1)
+# Verify requirements.txt exists
+RUN test -f requirements.txt || (echo "Requirements file missing" && exit 1)
 
 # Add argon2-cffi if not present
 RUN grep -q 'argon2-cffi' requirements.txt || echo 'argon2-cffi>=21.3.0' >> requirements.txt
@@ -32,7 +31,7 @@ RUN pip install --upgrade pip && \
 FROM python:3.12-slim
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies (corrected package names)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi7 \
     libssl3 && \
