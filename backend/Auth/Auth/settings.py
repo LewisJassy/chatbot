@@ -252,7 +252,7 @@ SESSION_CACHE_ALIAS = 'default'
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv('REDIS_URL', "redis://redis-stack-server:6379"),
+        "LOCATION": os.getenv('REDIS_URL', "redis://redis_stack:6379"),
         "OPTIONS": {
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,
