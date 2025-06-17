@@ -32,7 +32,7 @@ export default function LandingPage() {
       style={{
         background:
           "linear-gradient(120deg, #0f2027, #2c5364 40%, #11998e 80%, #38ef7d 100%)",
-        animation: "gradientBG 10s ease-in-out infinite alternate"
+        animation: "gradientBG 10s ease-in-out infinite alternate",
       }}
     >
       {/* Animated floating particles */}
@@ -48,14 +48,14 @@ export default function LandingPage() {
               top: `${Math.random() * 100}%`,
               background: `linear-gradient(135deg, #38ef7d, #11998e, #2c5364)`,
               animationDelay: `${Math.random() * 8}s`,
-              filter: `blur(${2 + Math.random() * 4}px)`
+              filter: `blur(${2 + Math.random() * 4}px)`,
             }}
           />
         ))}
       </div>
       <h1
         ref={headingRef}
-        className="text-5xl font-extrabold text-white mb-6 drop-shadow-lg z-10 opacity-0"
+        className="text-5xl text-center font-extrabold text-white mb-6 drop-shadow-lg z-10 opacity-0"
       >
         Welcome to Chatbot!
       </h1>
@@ -63,7 +63,8 @@ export default function LandingPage() {
         ref={subtitleRef}
         className="text-xl text-gray-200 mb-10 max-w-xl text-center z-10 opacity-0"
       >
-        Your AI-powered assistant for smarter conversations. Sign up or log in to get started!
+        Your AI-powered assistant for smarter conversations. Sign up or log in
+        to get started!
       </p>
       <div ref={buttonRef} className="flex gap-4 z-10 opacity-0">
         <button
@@ -74,7 +75,7 @@ export default function LandingPage() {
           Login
         </button>
         <button
-          onClick={() => navigate("/login")}
+          onClick={() => navigate("/register")}
           className="px-8 py-3 bg-white text-green-700 rounded-xl font-bold text-lg shadow-lg hover:bg-gray-100 transition transform hover:scale-110 focus:scale-105 focus:outline-none animate-pulse"
           style={{ boxShadow: "0 0 32px 0 #38ef7d33" }}
         >
@@ -122,3 +123,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
