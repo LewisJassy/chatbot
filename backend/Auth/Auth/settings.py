@@ -41,7 +41,6 @@ ALLOWED_HOSTS = [
     "authentication-service-cj2t.onrender.com"
 ]
 
-
 # Application definition
 
 REST_FRAMEWORK = {
