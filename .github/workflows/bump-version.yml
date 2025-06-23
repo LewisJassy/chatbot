@@ -57,6 +57,8 @@ jobs:
             if git push origin HEAD:main; then
             echo "✅ Push successful"
             else
+                echo "❌ Push failed"
+            fi
       - name: Create Git tag for new version
         if: steps.bump_version.outputs.new_version != ''
         run: |
