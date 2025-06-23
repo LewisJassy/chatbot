@@ -17,7 +17,6 @@ for msg in "$@"; do
         break
     elif echo "$msg" | grep -Eq '^feat(\(.+\))?:'; then
         [ "$BUMP" != "major" ] && BUMP="minor"
-        # Don't break, in case a higher upgrade is found later
     elif echo "$msg" | grep -Eq '^fix(\(.+\))?:'; then
         [ "$BUMP" = "patch" ] && BUMP="patch"
     fi
@@ -41,3 +40,5 @@ esac
 NEW_VERSION="$MAJOR.$MINOR.$PATCH"
 echo "$NEW_VERSION" > "$VERSION_FILE"
 echo "Bumped version: $CURRENT_VERSION -> $NEW_VERSION ($BUMP)"
+
+exit 0
