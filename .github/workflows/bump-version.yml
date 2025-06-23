@@ -35,8 +35,24 @@ jobs:
           readarray -t messages <<< "${{ env.MSGS }}"
           .github/scripts/bump_version.sh "${messages[@]}"
 
-      - name: Show new version
-        run: cat VERSION
+      - name: Commit and optionally push version file
+        env:
+            GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add VERSION
+            git diff --cached --quiet || git commit -m "chore: bump version [skip ci]"
+
+            git remote set-url origin https://x-access-token:${GH_PAT}@github.com/LewisJassy/chatbot.git
+
+            echo "🟡 Attempting to push version file..."
+            if git push origin HEAD:main; then
+            echo "✅ Push successful"
+            else
+            echo "⚠️ Push failed (likely permission issue). Continuing without breaking the workflow."
+            fi
+
 
 
       - name: Create Git tag for new version
