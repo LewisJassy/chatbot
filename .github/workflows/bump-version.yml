@@ -35,18 +35,8 @@ jobs:
           readarray -t messages <<< "${{ env.MSGS }}"
           .github/scripts/bump_version.sh "${messages[@]}"
 
-      - name: Commit and push version file
-        env:
-            GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add VERSION
-          git diff --cached --quiet || git commit -m "chore: bump version [skip ci]"
-
-          # Push using token authentication
-          git push https://x-access-token:${GH_PAT}@github.com/LewisJassy/chatbot.git HEAD:main
-          git push origin HEAD:main
+      - name: Show new version
+        run: cat VERSION
 
 
       - name: Create Git tag for new version
