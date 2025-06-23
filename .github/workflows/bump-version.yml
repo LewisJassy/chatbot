@@ -33,9 +33,14 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Bump version if needed
+        id: bump_version
         run: |
-          readarray -t messages <<< "${{ env.MSGS }}"
+          readarray -t messages <<< "$MSGS"
           .github/scripts/bump_version.sh "${messages[@]}"
+          if [ -f VERSION ]; then
+            NEW_VERSION=$(cat VERSION)
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          fi
 
       - name: Commit and optionally push version file
         env:
@@ -52,19 +57,19 @@ jobs:
             if git push origin HEAD:main; then
             echo "✅ Push successful"
             else
-            echo "⚠️ Push failed (likely permission issue). Continuing without breaking the workflow."
-            fi
-
-
-
       - name: Create Git tag for new version
         if: steps.bump_version.outputs.new_version != ''
         run: |
-          NEW_VERSION=$(cat VERSION)
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
           TAG="v$NEW_VERSION"
           # Check if tag already exists
           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
             git tag "$TAG"
+            git push origin "$TAG"
+            echo "Tag $TAG created and pushed."
+          else
+            echo "Tag $TAG already exists."
+          fi
             git push origin "$TAG"
             echo "Tag $TAG created and pushed."
           else
