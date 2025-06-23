@@ -25,7 +25,98 @@ env:
   SSL_MODE: require
 
 jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      should-tag: ${{ steps.version.outputs.should-tag }}
+      new-version: ${{ steps.version.outputs.new-version }}
+      version-type: ${{ steps.version.outputs.version-type }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for version calculation
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Calculate new version
+        id: version
+        run: |
+          # Get the latest tag (if any)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Remove 'v' prefix for version calculation
+          CURRENT_VERSION=${LATEST_TAG#v}
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Split version into parts
+          IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+          
+          # Get commit messages since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s" HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"%s" ${LATEST_TAG}..HEAD)
+          fi
+          
+          echo "Analyzing commits:"
+          echo "$COMMITS"
+          
+          # Determine version bump type based on commit messages
+          VERSION_TYPE="none"
+          
+          # Check for breaking changes (major version bump)
+          if echo "$COMMITS" | grep -qiE "(BREAKING CHANGE|breaking:|major:)"; then
+            VERSION_TYPE="major"
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          # Check for features (minor version bump)
+          elif echo "$COMMITS" | grep -qiE "(feat:|feature:|minor:)"; then
+            VERSION_TYPE="minor"
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          # Check for fixes and other changes (patch version bump)
+          elif echo "$COMMITS" | grep -qiE "(fix:|patch:|hotfix:|bug:|docs:|style:|refactor:|test:|chore:)"; then
+            VERSION_TYPE="patch"
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          
+          echo "Version type: $VERSION_TYPE"
+          echo "New version: $NEW_VERSION"
+          
+          # Set outputs
+          if [ "$VERSION_TYPE" != "none" ]; then
+            echo "should-tag=true" >> $GITHUB_OUTPUT
+            echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+          else
+            echo "should-tag=false" >> $GITHUB_OUTPUT
+            echo "new-version=$LATEST_TAG" >> $GITHUB_OUTPUT
+            echo "version-type=none" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push tag
+        if: steps.version.outputs.should-tag == 'true'
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.new-version }}"
+          echo "Creating tag: $NEW_VERSION"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git tag -a "$NEW_VERSION" -m "Auto-generated ${{ steps.version.outputs.version-type }} release $NEW_VERSION"
+          git push origin "$NEW_VERSION"
   build-push:
+    needs: [version-check]
+    if: always() && (needs.version-check.result == 'success' || needs.version-check.result == 'skipped' || github.event_name != 'push' || github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
 
     strategy:
@@ -69,18 +160,36 @@ jobs:
       - name: Extract version or fallback to SHA
         id: meta
         run: |
+          # Check if this is a tag push first
           if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "Using tag version: $VERSION"
+          # Check if version-check job created a new version
+          elif [[ "${{ needs.version-check.outputs.should-tag }}" == "true" ]]; then
+            VERSION="${{ needs.version-check.outputs.new-version }}"
+            VERSION="${VERSION#v}"
+            echo "Using auto-generated version: $VERSION"
           else
-            VERSION="${GITHUB_SHA}"
+            # Fallback: try to get the latest tag from git, or use SHA
+            git fetch --tags 2>/dev/null || true
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [[ -n "$LATEST_TAG" && "$LATEST_TAG" == v* ]]; then
+              VERSION="${LATEST_TAG#v}"
+              echo "Using latest git tag: $VERSION"
+            else
+              VERSION="${GITHUB_SHA}"
+              echo "Using SHA as version: $VERSION"
+            fi
           fi
+          echo "Final VERSION=$VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate Docker tags
         id: tags
         run: |
-          TAGS="lewis254/${{ matrix.service.image }}:latest,lewis254/${{ matrix.service.image }}:${{ env.VERSION }}"
+          VERSION="${{ steps.meta.outputs.version }}"
+          TAGS="lewis254/${{ matrix.service.image }}:latest,lewis254/${{ matrix.service.image }}:${VERSION}"
           echo "TAGS=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Docker Login
@@ -100,25 +209,37 @@ jobs:
           cache-to: type=gha,mode=max
 
   create-release:
-    needs: build-push
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-push, version-check]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || needs.version-check.outputs.should-tag == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.version-check.outputs.new-version || github.ref_name }}
           generate_release_notes: true
+          name: Release ${{ needs.version-check.outputs.new-version || github.ref_name }}
+          body: |
+            Auto-generated ${{ needs.version-check.outputs.version-type || 'manual' }} release.
+            
+            ## Changes
+            This release includes the following Docker images:
+            - `lewis254/authentication-service:${{ needs.build-push.outputs.version }}`
+            - `lewis254/chatbot-service:${{ needs.build-push.outputs.version }}`
+            - `lewis254/chatbot-history-service:${{ needs.build-push.outputs.version }}`
+            - `lewis254/vector-service:${{ needs.build-push.outputs.version }}`
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
-    needs: [build-push]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-push, version-check]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || needs.version-check.outputs.should-tag == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Staging/Prod
         run: |
           echo "Deploying lewis254 images to staging..."
+          echo "Version: ${{ needs.version-check.outputs.new-version || github.ref_name }}"
+          echo "Version Type: ${{ needs.version-check.outputs.version-type || 'manual' }}"
           # Example: curl -X POST your-deployment-endpoint
           # or: ssh user@server "docker pull lewis254/... && docker-compose up -d"
