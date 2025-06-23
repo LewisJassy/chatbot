@@ -38,7 +38,7 @@ ALLOWED_HOSTS = [
     'lewisnjaci.tech',
     'www.lewisnjaci.tech',
     '*',
-    "authentication-service-cj2t.onrender.com"
+    'authentication-service-cj2t.onrender.com',
 ]
 
 # Application definition
