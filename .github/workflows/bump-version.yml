@@ -1,72 +1,72 @@
-# name: Bump Monorepo Version
+name: Bump Monorepo Version
 
-# on:
-#   push:
-#     branches:
-#       - main
+on:
+  push:
+    branches:
+      - main
 
-# jobs:
-#   bump-version:
-#     runs-on: ubuntu-latest
-#     permissions:
-#      contents: write
-#     steps:
-#       - uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+     contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-#       - name: Make bump script executable
-#         run: chmod +x .github/scripts/bump_version.sh
+      - name: Make bump script executable
+        run: chmod +x .github/scripts/bump_version.sh
 
-#       - name: Get commit messages since last version bump
-#         id: get_msgs
-#         run: |
-#           LAST_BUMP=$(git log --pretty=format:"%h" --grep="chore: bump version" -n 1)
-#           if [[ -z "$LAST_BUMP" ]]; then
-#             RANGE=""
-#           else
-#             RANGE="$LAST_BUMP..HEAD"
-#           fi
-#           MSGS=$(git log $RANGE --pretty=format:%s)
-#           echo "MSGS<<EOF" >> $GITHUB_ENV
-#           echo "$MSGS" >> $GITHUB_ENV
-#           echo "EOF" >> $GITHUB_ENV
+      - name: Get commit messages since last version bump
+        id: get_msgs
+        run: |
+          LAST_BUMP=$(git log --pretty=format:"%h" --grep="chore: bump version" -n 1)
+          if [[ -z "$LAST_BUMP" ]]; then
+            RANGE=""
+          else
+            RANGE="$LAST_BUMP..HEAD"
+          fi
+          MSGS=$(git log $RANGE --pretty=format:%s)
+          echo "MSGS<<EOF" >> $GITHUB_ENV
+          echo "$MSGS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
-#       - name: Bump version if needed
-#         run: |
-#           readarray -t messages <<< "${{ env.MSGS }}"
-#           .github/scripts/bump_version.sh "${messages[@]}"
+      - name: Bump version if needed
+        run: |
+          readarray -t messages <<< "${{ env.MSGS }}"
+          .github/scripts/bump_version.sh "${messages[@]}"
 
-#       - name: Commit and optionally push version file
-#         env:
-#             TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         run: |
-#             git config user.name "github-actions[bot]"
-#             git config user.email "github-actions[bot]@users.noreply.github.com"
-#             git add VERSION
-#             git diff --cached --quiet || git commit -m "chore: bump version [skip ci]"
+      - name: Commit and optionally push version file
+        env:
+            TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add VERSION
+            git diff --cached --quiet || git commit -m "chore: bump version"
 
-#             git remote set-url origin https://x-access-token:${TOKEN}@github.com/LewisJassy/chatbot.git
+            git remote set-url origin https://x-access-token:${TOKEN}@github.com/LewisJassy/chatbot.git
 
-#             echo "🟡 Attempting to push version file..."
-#             if git push origin HEAD:main; then
-#             echo "✅ Push successful"
-#             else
-#             echo "⚠️ Push failed (likely permission issue). Continuing without breaking the workflow."
-#             fi
+            echo "🟡 Attempting to push version file..."
+            if git push origin HEAD:main; then
+            echo "✅ Push successful"
+            else
+            echo "⚠️ Push failed (likely permission issue). Continuing without breaking the workflow."
+            fi
 
 
 
-#       - name: Create Git tag for new version
-#         if: steps.bump_version.outputs.new_version != ''
-#         run: |
-#           NEW_VERSION=$(cat VERSION)
-#           TAG="v$NEW_VERSION"
-#           # Check if tag already exists
-#           if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-#             git tag "$TAG"
-#             git push origin "$TAG"
-#             echo "Tag $TAG created and pushed."
-#           else
-#             echo "Tag $TAG already exists."
-#           fi
+      - name: Create Git tag for new version
+        if: steps.bump_version.outputs.new_version != ''
+        run: |
+          NEW_VERSION=$(cat VERSION)
+          TAG="v$NEW_VERSION"
+          # Check if tag already exists
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Tag $TAG created and pushed."
+          else
+            echo "Tag $TAG already exists."
+          fi
