@@ -32,7 +32,7 @@ jobs:
 
       - name: Bump version if needed
         run: |
-          IFS=$'\n' read -rd '' -a messages <<< "${{ env.MSGS }}"
+          readarray -t messages <<< "${{ env.MSGS }}"
           .github/scripts/bump_version.sh "${messages[@]}"
 
       - name: Commit and push version file
