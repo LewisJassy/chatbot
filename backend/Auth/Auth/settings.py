@@ -147,7 +147,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Auth.wsgi.application'
-
 ASGI_APLLICATION = 'Auth.asgi.application'
 
 
