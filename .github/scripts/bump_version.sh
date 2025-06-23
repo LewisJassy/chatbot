@@ -12,15 +12,15 @@ IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
 BUMP="patch"
 for msg in "$@"; do
-  if echo "$msg" | grep -Eq '^feat!|BREAKING CHANGE'; then
-    BUMP="major"
-    break
-  elif echo "$msg" | grep -Eq '^feat(\(.+\))?:'; then
-    BUMP="minor"
-    # Don't break, in case a higher upgrade is found later
-  elif echo "$msg" | grep -Eq '^fix(\(.+\))?:'; then
-    [ "$BUMP" = "patch" ] && BUMP="patch"
-  fi
+    if echo "$msg" | grep -Eq '^feat!|BREAKING CHANGE'; then
+        BUMP="major"
+        break
+    elif echo "$msg" | grep -Eq '^feat(\(.+\))?:'; then
+        [ "$BUMP" != "major" ] && BUMP="minor"
+        # Don't break, in case a higher upgrade is found later
+    elif echo "$msg" | grep -Eq '^fix(\(.+\))?:'; then
+        [ "$BUMP" = "patch" ] && BUMP="patch"
+    fi
 done
 
 case $BUMP in
