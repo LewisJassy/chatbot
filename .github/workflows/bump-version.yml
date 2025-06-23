@@ -31,9 +31,9 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Bump version if needed
-        id: bump_version
         run: |
-          .github/scripts/bump_version.sh ${{ env.MSGS }}
+          IFS=$'\n' read -rd '' -a messages <<< "${{ env.MSGS }}"
+          .github/scripts/bump_version.sh "${messages[@]}"
 
       - name: Commit and push version file
         run: |
