@@ -33,6 +33,21 @@ redis_client = redis.Redis(
 
 _shared_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="auth_async")
 
+def _is_redis_available():
+    """Check if Redis is available and responsive."""
+    if not redis_client:
+        return False
+    try:
+        # Use PING command to test connection
+        response = redis_client.ping()
+        return response is True
+    except (redis.RedisError, redis.ConnectionError, redis.TimeoutError) as e:
+        logger.warning(f"Redis health check failed: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error during Redis health check: {e}")
+        return False
+
 class UserRegistrationView(APIView):
     """
     API endpoint for user registration.
@@ -52,7 +67,7 @@ class UserRegistrationView(APIView):
                 return Response(
                     {'error': 'Registration failed – please try again later.'},
                     status=status.HTTP_400_BAD_REQUEST
-                )
+                )       
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
@@ -60,9 +75,14 @@ class UserLoginView(APIView):
     """
     Optimized API endpoint for user login with efficient Redis caching.
     """
-    USER_CACHE_TTL = 3600    
+    USER_CACHE_TTL = 3600
+    
     def _get_cached_user_data(self, email):
         """Get user data from cache with error handling."""
+        if not _is_redis_available():
+            logger.debug("Redis not available, skipping cache lookup")
+            return None
+            
         try:
             cache_key = f'user:{email}'
             cached_data = redis_client.get(cache_key)
@@ -73,9 +93,14 @@ class UserLoginView(APIView):
                 logger.debug(f"No cached data found for user: {email}")
         except (redis.RedisError, json.JSONDecodeError) as e:
             logger.warning(f"Cache error for user {email}: {e}")
-        return None    
+        return None
+    
     def _cache_user_data(self, user):
         """Cache user data efficiently."""
+        if not _is_redis_available():
+            logger.debug("Redis not available, skipping cache storage")
+            return
+            
         try:
             cache_key = f'user:{user.email}'
             user_data = {
@@ -160,32 +185,44 @@ class AuthStatusView(APIView):
     
     def get(self, request):
         user = request.user
+        
+        # Initialize with no cached data
+        user_info = None
         cache_key = f'user_info:{user.id}'
-        cached_user = redis_client.get(cache_key)
         
-        if cached_user:
+        # Check Redis availability with proper health check
+        if _is_redis_available():
             try:
-                user_info = json.loads(cached_user)
-                logger.info(f"Returned cached user info for {user.email}")
-                return Response(user_info)
-            except json.JSONDecodeError:
-                pass
+                cached_user = redis_client.get(cache_key)
+                if cached_user:
+                    user_info = json.loads(cached_user)
+                    logger.info(f"Returned cached user info for {user.email}")
+            except (redis.RedisError, json.JSONDecodeError) as e:
+                logger.error(f"Redis error: {str(e)}")
+        else:
+            logger.debug("Redis not available, skipping cache lookup")
         
-        response_data = {
-            'authenticated': True,
-            'user': {
-                'id': user.id,
-                'email': user.email
+        if not user_info:
+            response_data = {
+                'authenticated': True,
+                'user': {
+                    'id': user.id,
+                    'email': user.email
+                }
             }
-        }
+            
+            # Use health check before caching
+            if _is_redis_available():
+                try:
+                    redis_client.setex(cache_key, 3600, json.dumps(response_data))
+                except redis.RedisError as e:
+                    logger.error(f"Redis cache error: {str(e)}")
+            else:
+                logger.debug("Redis not available, skipping cache storage")
+            
+            return Response(response_data)
         
-        try:
-            redis_client.setex(cache_key, 3600, json.dumps(response_data))
-        except redis.RedisError as e:
-            logger.error(f"Redis cache error: {str(e)}")
-        
-        return Response(response_data)
-
+        return Response(user_info)
 class PasswordResetRequestView(APIView):
     """
     API view to handle password reset requests.
@@ -231,6 +268,10 @@ class UserLogoutView(APIView):
 
     def _invalidate_user_cache(self, user_id, email):
         """Efficiently invalidate user cache using Redis pipeline."""
+        if not _is_redis_available():
+            logger.debug("Redis not available, skipping cache invalidation")
+            return
+            
         try:
             pipe = redis_client.pipeline()
             pipe.delete(f'user:{email}')
