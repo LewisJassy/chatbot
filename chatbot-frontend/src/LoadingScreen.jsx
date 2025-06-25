@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import robotImage from "./assets/robot.png"; // Use the image you generated earlier
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -7,14 +7,14 @@ export default function LoadingScreen({ onComplete }) {
   const [loadingMessage, setLoadingMessage] = useState("Firing engine up...");
   const [showFinalMessage, setShowFinalMessage] = useState(false);
 
-  const messages = [
+  const messages = useMemo(() => [
     "Waking up the sleepy robot...",
     "Connecting to devOS...",
     "Configuring core modules...",
     "Loading the universe...",
     "Optimizing space-time continuum...",
     "Powering up systems...",
-  ];
+  ], []);
 
   useEffect(() => {
     const interval = setInterval(() => {
