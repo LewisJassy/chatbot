@@ -26,6 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-6dspgzxt%s^xgxzj%#tbz49gq&ts*gt)i$ltz6e9^7ah096cfk"
+REDIS_URL = os.getenv("REDIS_URL")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -253,7 +254,7 @@ SESSION_CACHE_ALIAS = 'default'
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.getenv('REDIS_URL', "redis://redis_stack:6379"),
+        "LOCATION": os.getenv('REDIS_URL', ""),
         "OPTIONS": {
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,

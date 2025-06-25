@@ -18,18 +18,10 @@ logger = logging.getLogger(__name__)
 
 UserModel = get_user_model()
 
-redis_client = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
-    port=os.getenv('REDIS_PORT', 6379),
-    db=os.getenv('REDIS_DB', 0),
-    decode_responses=True,
-    connection_pool=redis.ConnectionPool(
-        host=os.getenv('REDIS_HOST', 'localhost'),
-        port=os.getenv('REDIS_PORT', 6379),
-        db=os.getenv('REDIS_DB', 0),
-        max_connections=20
-    )
-)
+# Replace direct host/port/db settings with REDIS_URL
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+pool = redis.ConnectionPool.from_url(redis_url, max_connections=20)
+redis_client = redis.Redis(connection_pool=pool, decode_responses=True)
 
 _shared_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="auth_async")
 
