@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { authAPI, setAuthTokens } from "../../utils/axios";
 
 import {
@@ -27,7 +27,7 @@ export default function Login({ onLogin }) {
   const navigate = useNavigate();
   const isMounted = useRef(true);
 
-  const { pathname } = useLocation();
+  // Removed unused pathname from useLocation()
 
   useEffect(() => {
     return () => {
