@@ -21,6 +21,7 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: chatbot-frontend
 
       - name: Build frontend
         run: npm run build
@@ -28,6 +29,7 @@ jobs:
 
       - name: Install Vercel CLI (for debugging or local use)
         run: npm install -g vercel
+        working-directory: chatbot-frontend
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
@@ -35,6 +37,7 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: chatbot-frontend
           vercel-args: '--prod --yes'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
