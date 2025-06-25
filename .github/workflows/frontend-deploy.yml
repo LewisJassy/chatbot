@@ -32,7 +32,7 @@ jobs:
         working-directory: chatbot-frontend
 
       - name: Deploy to Vercel
-        run: npx vercel --prod --yes
+        run: npx vercel --prod --yes --token $VERCEL_TOKEN --org $VERCEL_ORG_ID --project $VERCEL_PROJECT_ID
         working-directory: chatbot-frontend
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
