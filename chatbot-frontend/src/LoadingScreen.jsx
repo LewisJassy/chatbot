@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import robotImage from "./assets/robot.png"; // Use the image you generated earlier
 import { motion, AnimatePresence } from "framer-motion";
 
