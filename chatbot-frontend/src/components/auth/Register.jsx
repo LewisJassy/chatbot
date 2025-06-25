@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate} from "react-router-dom";
 import authAPI from "../../utils/axios";
 import { AuthLayout, EmailInput, PasswordInput, NameInput } from "./AuthLayout";
 
@@ -22,8 +22,6 @@ export default function Register({ onLogin }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const isMounted = useRef(true);
-
-  const { pathname } = useLocation();
 
   useEffect(() => {
     return () => {
