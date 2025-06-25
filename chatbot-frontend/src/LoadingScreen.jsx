@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import robotImage from "./assets/robot.png"; // Use the image you generated earlier
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,8 +22,13 @@ export default function LoadingScreen({ onComplete }) {
       setProgress((prev) => {
         if (prev < 100) {
           if (prev % 20 === 0 && prev !== 0) {
-            setLoadingMessage(messages[Math.floor(prev / 20) - 1]);
+            const index = (prev / 20 - 1) % messages.length;
+            setLoadingMessage(messages[index]);
           }
+          
+          LoadingScreen.propTypes = {
+            onComplete: PropTypes.func.isRequired,
+          };
           return prev + 2;
         } else {
           clearInterval(interval);
