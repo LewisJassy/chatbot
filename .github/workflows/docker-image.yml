@@ -74,33 +74,41 @@ jobs:
           
           echo "Analyzing commits:"
           echo "$COMMITS"
-          
-          # Determine version bump type based on commit messages
-          VERSION_TYPE="none"
-          
-          # Check for breaking changes (major version bump)
+
+          HAS_MAJOR=false
+          HAS_MINOR=false
+          HAS_PATCH=false
+
           if echo "$COMMITS" | grep -qiE "(BREAKING CHANGE|breaking:|major:)"; then
+            HAS_MAJOR=true
+          fi
+          if echo "$COMMITS" | grep -qiE "(feat:|feature:|minor:)"; then
+            HAS_MINOR=true
+          fi
+          if echo "$COMMITS" | grep -qiE "(fix:|patch:|hotfix:|bug:|docs:|style:|refactor:|test:|chore:)"; then
+            HAS_PATCH=true
+          fi
+
+          VERSION_TYPE="none"
+
+          if [ "$HAS_MAJOR" = true ]; then
             VERSION_TYPE="major"
             MAJOR=$((MAJOR + 1))
             MINOR=0
             PATCH=0
-          # Check for features (minor version bump)
-          elif echo "$COMMITS" | grep -qiE "(feat:|feature:|minor:)"; then
+          elif [ "$HAS_MINOR" = true ]; then
             VERSION_TYPE="minor"
             MINOR=$((MINOR + 1))
             PATCH=0
-          # Check for fixes and other changes (patch version bump)
-          elif echo "$COMMITS" | grep -qiE "(fix:|patch:|hotfix:|bug:|docs:|style:|refactor:|test:|chore:)"; then
+          elif [ "$HAS_PATCH" = true ]; then
             VERSION_TYPE="patch"
             PATCH=$((PATCH + 1))
           fi
-          
+
           NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
-          
           echo "Version type: $VERSION_TYPE"
           echo "New version: $NEW_VERSION"
-          
-          # Set outputs
+
           if [ "$VERSION_TYPE" != "none" ]; then
             echo "should-tag=true" >> $GITHUB_OUTPUT
             echo "new-version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -110,7 +118,6 @@ jobs:
             echo "new-version=$LATEST_TAG" >> $GITHUB_OUTPUT
             echo "version-type=none" >> $GITHUB_OUTPUT
           fi
-
       - name: Create and push tag
         if: steps.version.outputs.should-tag == 'true'
         run: |
