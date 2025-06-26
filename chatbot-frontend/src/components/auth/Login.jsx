@@ -14,7 +14,7 @@ import {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-export default function Login({ onLogin }) {
+export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -187,6 +187,9 @@ export default function Login({ onLogin }) {
       toggleText="Don't have an account?"
       onToggle={() => navigate("/register")}
       onSubmit={handleSubmit}
+      isPasswordReset={true}
+      passworedResetText="Forgot Password? "
+      onPasswordReset={() => navigate("/forgot-password")}
     >
       <EmailInput value={formData.email} onChange={handleInputChange} />
       <PasswordInput
@@ -202,7 +205,3 @@ export default function Login({ onLogin }) {
     </AuthLayout>
   );
 }
-
-Login.propTypes = {
-  onLogin: PropTypes.func.isRequired,
-};

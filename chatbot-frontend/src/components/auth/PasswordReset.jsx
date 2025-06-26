@@ -1,10 +1,18 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import { AuthLayout, EmailInput } from "./AuthLayout";
 import { useNavigate } from "react-router-dom";
+import authAPI from "../../utils/axios";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const PasswordReset = () => {
   const [formData, setFormData] = useState({ email: "" });
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -16,11 +24,11 @@ const PasswordReset = () => {
 
     if (!email.trim()) {
       setError("Email field required");
-      return False;
+      return false;
     }
     if (!EMAIL_REGEX.test(email.trim())) {
       setError("Please enter a valid email address.");
-      return False;
+      return false;
     }
     return true;
   }, [formData]);
@@ -46,12 +54,7 @@ const PasswordReset = () => {
           email: formData.email.trim(),
         };
 
-        const response = await authAPI.post("/password-reset/", payload);
-        const data = response.data;
-
-        // Store tokens for login
-
-        // Update auth state immediately
+        await authAPI.post("/password-reset/", payload);
 
         setIsSuccess(true);
 
@@ -60,7 +63,7 @@ const PasswordReset = () => {
           if (isMounted.current) {
             navigate("/login", { replace: true });
           }
-        }, 300);
+        }, 4000);
       } catch (err) {
         setError(
           err.response?.data?.error ||
@@ -85,7 +88,7 @@ const PasswordReset = () => {
       isLoading={isLoading}
       submitText="Submit"
       toggleText="Don't have an account?"
-      onToggle={() => navigate("/register")}
+      onToggle={() => navigate("/login")}
       onSubmit={handleSubmit}
       otherLink="Register"
     >

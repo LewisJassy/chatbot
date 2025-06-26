@@ -1,9 +1,9 @@
 import axios from "axios";
 
 // API Endpoints configuration - Fixed base URLs
-// const AUTH_API_URL = "https://authentication-service-cj2t.onrender.com"; // Base URL only
+const AUTH_API_URL = "https://authentication-service-cj2t.onrender.com"; // Base URL only
 const CHAT_API_URL = "http://localhost:8001";
-const AUTH_API_URL = "http://localhost:8000";
+// const AUTH_API_URL = "http://localhost:8000";
 
 // Create separate instances for auth and chat
 export const authAPI = axios.create({
@@ -134,4 +134,3 @@ export const clearAuthTokens = () => {
 
 // Default export for backwards compatibility
 export default authAPI;
-
