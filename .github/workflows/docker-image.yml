@@ -6,8 +6,7 @@ on:
       - main
     tags:
       - "v*.*.*"  # Semantic version tags
-    paths:
-      - "backend/**"
+
   pull_request:
     branches:
       - main
