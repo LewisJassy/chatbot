@@ -72,7 +72,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
           </body>
         </html>"""
         # Send email
-        email_message = EmailMultiAlternatives(subject, text_content, from_email="support@example.com", to=[email])
+        email_message = EmailMultiAlternatives(subject, text_content, from_email="lewisjassy43@gmail.com.com", to=[email])
         email_message.attach_alternative(html_content, "text/html")
         email_message.send()
         
