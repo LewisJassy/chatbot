@@ -162,7 +162,7 @@ DATABASES = {
         'PORT': os.getenv('POSTGRES_PORT'),
         'CONN_MAX_AGE': 600,  # Connection pooling - keep connections alive for 10 minutes
         'OPTIONS': {
-            'sslmode': 'very-full',
+            'sslmode': 'require',
             'connect_timeout': 10,
             'keepalives': 1,
             'keepalives_idle': 30,
@@ -252,7 +252,7 @@ SESSION_CACHE_ALIAS = 'default'
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379",
+        "LOCATION": os.getenv('REDIS_URL', "redis://redis_stack:6379"),
         "OPTIONS": {
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,
@@ -261,3 +261,12 @@ CACHES = {
         }
     }
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("HOST_EMAIL")
+EMAIL_HOST_PASSWORD = os.getenv("HOST_PASSWORD")
+EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = os.getenv("HOST_EMAIL")

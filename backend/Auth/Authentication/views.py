@@ -7,7 +7,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import TokenError
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.hashers import check_password
-from .serializers import UserRegistrationSerializer
+from .serializers import UserRegistrationSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer 
 import os
 import logging
 import redis
@@ -185,6 +185,42 @@ class AuthStatusView(APIView):
             logger.error(f"Redis cache error: {str(e)}")
         
         return Response(response_data)
+
+class PasswordResetRequestView(APIView):
+    """
+    API view to handle password reset requests.
+
+    POST:
+        Accepts user data (typically email) to initiate a password reset process.
+        Validates the input using PasswordResetRequestSerializer.
+        On success, triggers the sending of a password reset email and returns a success message.
+        On failure, returns validation errors with a 400 status code.
+    """
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Reset email sent'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetConfirmView(APIView):
+    """
+    View for confirming and completing a password reset.
+
+    This view handles POST requests containing the necessary data to reset a user's password.
+    It validates the input using the PasswordResetConfirmSerializer, and if valid, saves the new password.
+    On success, it returns a message indicating the password has been reset.
+    On failure, it returns the serializer errors.
+
+    Methods:
+        post(request): Handles the password reset confirmation.
+    """
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Password has been reset'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserLogoutView(APIView):
     """
