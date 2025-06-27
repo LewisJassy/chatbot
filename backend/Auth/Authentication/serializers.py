@@ -4,7 +4,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 import os
 
 User = get_user_model()
