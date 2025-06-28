@@ -5,6 +5,18 @@ const AUTH_API_URL = "https://authentication-service-cj2t.onrender.com"; // Base
 const CHAT_API_URL = "http://localhost:8001";
 // const AUTH_API_URL = "http://localhost:8000";
 
+if (!import.meta.env.VITE_CHATBOT_URL) {
+  throw new Error(
+    "CHATBOT_URL is not defined in environment variables. Using fallback value.",
+  );
+}
+
+if (!import.meta.env.VITE_AUTHENTICATION_URL) {
+  throw new Error(
+    "AUTHENTICATION_URL is not defined in environment variables. Using fallback value.",
+  );
+}
+
 // Create separate instances for auth and chat
 export const authAPI = axios.create({
   baseURL: AUTH_API_URL,
