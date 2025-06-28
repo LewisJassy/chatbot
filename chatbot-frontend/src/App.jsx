@@ -12,6 +12,9 @@ import LandingPage from "./LandingPage";
 import { getAuthToken, authAPI, clearAuthTokens } from "./utils/axios";
 import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
+import PasswordReset from "./components/auth/PasswordReset";
+import ConfirmPassword from "./components/auth/ConfirmPassword";
+import NotFoundPage from "./components/NotFoundPage";
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -97,6 +100,9 @@ function AppRoutes({ isAuthenticated, handleLogin, handleLogout }) {
           )
         }
       />
+      <Route path="/forgot-password" element={<PasswordReset />} />
+      <Route path="/reset-password/:uid/:token" element={<ConfirmPassword />} />
+      <Route path="*" element={<NotFoundPage />} />
       <Route
         path="/register"
         element={

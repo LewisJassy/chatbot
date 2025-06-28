@@ -23,6 +23,9 @@ export function AuthLayout({
   toggleText,
   onToggle,
   onSubmit,
+  isPasswordReset,
+  passworedResetText,
+  onPasswordReset,
 }) {
   return (
     <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -70,7 +73,6 @@ export function AuthLayout({
             )}
           </button>
         </form>
-
         {!isSuccess && (
           <div className="text-center mt-8">
             <p className="text-gray-300 text-sm">
@@ -80,6 +82,20 @@ export function AuthLayout({
                 className="text-purple-400 hover:text-purple-300 font-semibold transition-colors focus:outline-none hover:underline"
               >
                 {submitText === "Sign In" ? "Sign Up" : "Sign In"}
+              </button>
+            </p>
+          </div>
+        )}
+
+        {isPasswordReset && (
+          <div className="text-center mt-2 ">
+            <p className="text-gray-300 text-sm">
+              {passworedResetText}{" "}
+              <button
+                onClick={onPasswordReset}
+                className="text-purple-400 hover:text-purple-300 font-semibold transition-colors focus:outline-none hover:underline"
+              >
+                Reset Password
               </button>
             </p>
           </div>
@@ -126,11 +142,12 @@ export function PasswordInput({
   name = "password",
   placeholder = "Enter your password",
   autoComplete = "current-password",
+  confirmPassword,
 }) {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="block text-white font-medium text-sm">
-        Password
+        {confirmPassword ? "Confirm Password" : "Password"}
       </label>
       <div className="relative">
         <Lock

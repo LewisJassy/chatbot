@@ -1,0 +1,61 @@
+services:
+  # postgres:
+  #   image: postgres:17
+  #   container_name: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  #     POSTGRES_USER: ${POSTGRES_USER}
+  #     POSTGRES_DB: ${POSTGRES_DB}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    container_name: redis-stack-server
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    image: authentication-service:latest
+    env_file:
+      - ./Auth/Auth/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      # - postgres
+      - redis-stack
+    
+  chatbot-service:
+    image: chatbot-service:latest
+    ports:
+      - "8001:8001"
+    depends_on:
+      # - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+  chatbot-historys:
+    image: chatbot_history:latest
+    ports:
+      - "8003:8003"
+    depends_on:
+     # - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+  vector_service:
+    image: vector-service:latest
+    ports:
+      - "8002:8002"
+    depends_on:
+      # - postgres
+      - redis-stack
+    env_file:
+      - .env
+
+# volumes:
+#   postgres_data:

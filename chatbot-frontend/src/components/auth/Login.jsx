@@ -94,12 +94,14 @@ export default function Login({ onLogin }) {
 
       try {
         const payload = {
-          email: formData.email.trim(),
+          email: formData.email.trim().toLowerCase(), // Ensure lowercase
           password: formData.password.trim(),
           remember_me: rememberMe,
         };
 
+
         const response = await authAPI.post("/auth/login/", payload);
+
         const data = response.data;
 
         // Store tokens for login
@@ -121,12 +123,41 @@ export default function Login({ onLogin }) {
           }
         }, 300);
       } catch (err) {
-        setError(
-          err.response?.data?.error ||
+        console.error("Login error details:", {
+          message: err.message,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          config: {
+            url: err.config?.url,
+            baseURL: err.config?.baseURL,
+            method: err.config?.method,
+            data: err.config?.data ? JSON.parse(err.config.data) : null,
+          },
+        });
+
+        // Enhanced error handling
+        if (err.response?.status === 401) {
+          setError(
+            "Invalid email or password. Please check your credentials and try again.",
+          );
+        } else if (err.response?.status === 400) {
+          setError(
+            err.response?.data?.error ||
             err.response?.data?.message ||
-            "Failed to login. Please check your credentials.",
-        );
-        console.error("Login error:", err);
+            "Invalid request. Please check your input.",
+          );
+        } else if (err.code === "ECONNABORTED") {
+          setError(
+            "Request timed out. Please check your connection and try again.",
+          );
+        } else {
+          setError(
+            err.response?.data?.error ||
+            err.response?.data?.message ||
+            "Login failed. Please try again later.",
+          );
+        }
       } finally {
         setIsLoading(false);
       }
@@ -146,6 +177,9 @@ export default function Login({ onLogin }) {
       toggleText="Don't have an account?"
       onToggle={() => navigate("/register")}
       onSubmit={handleSubmit}
+      isPasswordReset={true}
+      passworedResetText="Forgot Password? "
+      onPasswordReset={() => navigate("/forgot-password")}
     >
       <EmailInput value={formData.email} onChange={handleInputChange} />
       <PasswordInput

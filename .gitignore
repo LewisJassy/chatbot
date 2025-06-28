@@ -1,0 +1,68 @@
+# === ENV files ===
+.env
+*.env
+*.env.local
+backend/.env
+chatbot-frontend/.env
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.log
+
+# Bytecode compiled files
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+backend/venv/
+
+# === Node / Vite / React ===
+node_modules/
+dist/
+build/
+chatbot-frontend/node_modules/
+chatbot-frontend/dist/
+
+# === Logs ===
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === OS / Editor junk ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Docker / System ===
+*.pid
+*.sock
+*.pid.lock
+dump.rdb
+
+# === Others (optional) ===
+coverage/
+*.cover
+*.orig
+*.rej
+
+
+# === Nginx / Supervisor backups or compiled ===
+*.bak
+*.swp
+*.swo
+
+# === Local settings (customize as needed) ===
+# ngrok.yml
+
