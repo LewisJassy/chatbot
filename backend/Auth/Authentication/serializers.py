@@ -4,7 +4,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 import os
 
 User = get_user_model()
@@ -57,12 +57,24 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5317")
         reset_link = f"{frontend_url}/reset-password/{uid}/{token}"
         
-        send_mail(
-            subject= "Password Reset",
-            message=f"click the link to reset your password\n{reset_link}",
-            from_email="lewisjassy43@gmail.com",
-            recipient_list=[email]
-        )
+        # Prepare rich HTML email with a reset button
+        subject = "Reset Your Password"
+        text_content = f"Click the link to reset your password: {reset_link}"
+        html_content = f"""
+        <html>
+          <body style=\"font-family:Arial,sans-serif;line-height:1.6;color:#333;\">
+            <h2>Password Reset Request</h2>
+            <p>Hi there,</p>
+            <p>You recently requested to reset your password for your account. Click the button below to reset it:</p>
+            <p><a href=\"{reset_link}\" style=\"display:inline-block;padding:10px 20px;font-size:16px;color:#fff;background-color:#007BFF;text-decoration:none;border-radius:4px;\">Reset Password</a></p>
+            <p>If you did not request a password reset, please ignore this email. This link will expire in 1 hour.</p>
+            <p>Thanks,<br/>The Support Team</p>
+          </body>
+        </html>"""
+        # Send email
+        email_message = EmailMultiAlternatives(subject, text_content, from_email="lewisjassy43@gmail.com.com", to=[email])
+        email_message.attach_alternative(html_content, "text/html")
+        email_message.send()
         
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

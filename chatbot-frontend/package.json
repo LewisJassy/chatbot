@@ -15,7 +15,7 @@
     "@hookform/resolvers": "^5.0.1",
     "@react-oauth/google": "^0.12.1",
     "@reduxjs/toolkit": "^2.5.1",
-    "axios": "^1.7.9",
+    "axios": ">=1.8.2",
     "firebase": "^11.5.0",
     "framer-motion": "^12.4.2",
     "js-cookie": "^3.0.5",
@@ -26,7 +26,7 @@
     "react-hot-toast": "^2.5.2",
     "react-query": "^3.39.3",
     "react-redux": "^9.2.0",
-    "react-router-dom": "^7.1.5",
+    "react-router-dom": "^7.6.2",
     "zod": "^3.24.4"
   },
   "devDependencies": {

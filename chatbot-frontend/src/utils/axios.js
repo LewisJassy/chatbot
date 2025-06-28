@@ -1,5 +1,6 @@
 import axios from "axios";
 
+
 // API Endpoints configuration - Fixed base URLs
 const AUTH_API_URL = "https://authentication-service-cj2t.onrender.com"; // Base URL only
 const CHAT_API_URL = "http://localhost:8001";
@@ -15,6 +16,18 @@ if (!import.meta.env.VITE_AUTHENTICATION_URL) {
   throw new Error(
     "AUTHENTICATION_URL is not defined in environment variables. Using fallback value.",
   );
+
+// API Endpoints configuration
+const AUTH_API_URL = import.meta.env.VITE_AUTHENTICATION_URL || '';
+const CHAT_API_URL = import.meta.env.VITE_CHATBOT_URL || '';
+
+if (!import.meta.env.VITE_CHATBOT_URL) {
+  throw new Error("CHATBOT_URL is not defined in environment variables. Using fallback value.");
+}
+
+if (!import.meta.env.VITE_AUTHENTICATION_URL) {
+  throw new Error('AUTHENTICATION_URL is not defined in environment variables. Using fallback value.');
+
 }
 
 // Create separate instances for auth and chat
