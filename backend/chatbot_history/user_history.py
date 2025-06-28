@@ -22,10 +22,13 @@ DB_CONFIG = {
     "port": os.getenv("POSTGRES_PORT", "5432"),
     "user": os.getenv("POSTGRES_USER", "postgres"),
     "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
-    "database": os.getenv("POSTGRES_DB", "chat_history")
+    "database": os.getenv("POSTGRES_DB", "chat_history"),
 }
 
-VECTOR_SERVICES_URL = os.getenv("VECTOR_SERVICES_URL", "http://localhost:82/upsert-history")
+VECTOR_SERVICES_URL = os.getenv(
+    "VECTOR_SERVICES_URL", "http://localhost:82/upsert-history"
+)
+
 
 class ChatHistoryCreate(BaseModel):
     user_id: str
@@ -33,20 +36,18 @@ class ChatHistoryCreate(BaseModel):
     response: str
     timestamp: datetime
 
+
 # Database connection pool
 connection_pool = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global connection_pool
     # Initialize DB connection pool
-    connection_pool = await asyncpg.create_pool(
-        min_size=1,
-        max_size=10,
-        **DB_CONFIG
-    )
+    connection_pool = await asyncpg.create_pool(min_size=1, max_size=10, **DB_CONFIG)
     logger.info("Database connection pool established")
-    
+
     # Create table if it doesn't exist
     async with connection_pool.acquire() as conn:
         await conn.execute("""
@@ -59,15 +60,19 @@ async def lifespan(app: FastAPI):
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_timestamp ON chat_history(timestamp);")
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_history_user_id ON chat_history(user_id);"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_chat_history_timestamp ON chat_history(timestamp);"
+        )
     logger.info("Database table and indexes ensured")
-    
+
     # Start RabbitMQ consumer in background - FIXED: use asyncio.create_task
     consumer_task = asyncio.create_task(consume_messages())
-    
+
     yield
-    
+
     # Cleanup
     consumer_task.cancel()
     try:
@@ -77,7 +82,9 @@ async def lifespan(app: FastAPI):
     await connection_pool.close()
     logger.info("Database connection pool closed")
 
+
 app = FastAPI(lifespan=lifespan)
+
 
 # Database operations
 async def save_history(history: ChatHistoryCreate):
@@ -91,7 +98,7 @@ async def save_history(history: ChatHistoryCreate):
                 history.user_id,
                 history.message,
                 history.response,
-                history.timestamp
+                history.timestamp,
             )
         logger.info(f"Saved history for user {history.user_id}")
         # Upsert to vector DB
@@ -102,7 +109,7 @@ async def save_history(history: ChatHistoryCreate):
                     "message": history.message,
                     "response": history.response,
                     "timestamp": history.timestamp.isoformat(),
-                    "role": "user"
+                    "role": "user",
                 }
                 resp = await client.post(VECTOR_SERVICES_URL, json=payload, timeout=10)
                 resp.raise_for_status()
@@ -112,16 +119,20 @@ async def save_history(history: ChatHistoryCreate):
     except asyncpg.PostgresError as e:
         logger.error(f"Database error saving history: {str(e)}")
         raise
+
+
 # RabbitMQ Consumer
 async def consume_messages():
     shutdown_event = asyncio.Event()
-    
+
     async def shutdown_handler():
         shutdown_event.set()
-    
-    app.state.shutdown_handlers = app.state.shutdown_handlers if hasattr(app.state, "shutdown_handlers") else []
+
+    app.state.shutdown_handlers = (
+        app.state.shutdown_handlers if hasattr(app.state, "shutdown_handlers") else []
+    )
     app.state.shutdown_handlers.append(shutdown_handler)
-    
+
     while not shutdown_event.is_set():
         try:
             connection = await aio_pika.connect_robust(
@@ -135,7 +146,7 @@ async def consume_messages():
                 async for message in queue_iter:
                     if shutdown_event.is_set():
                         break
-                    
+
                     try:
                         # Use process() context manager which handles ack/nack automatically
                         async with message.process():
@@ -144,13 +155,17 @@ async def consume_messages():
                                 user_id=data["user_id"],
                                 message=data["message"],
                                 response=data["response"],
-                                timestamp=datetime.fromisoformat(data["timestamp"])
+                                timestamp=datetime.fromisoformat(data["timestamp"]),
                             )
                             await save_history(history)
-                            logger.info(f"Successfully processed message for user {data['user_id']}")
-                            
+                            logger.info(
+                                f"Successfully processed message for user {data['user_id']}"
+                            )
+
                     except json.JSONDecodeError as e:
-                        logger.error(f"Invalid JSON in message: {message.body.decode()}")
+                        logger.error(
+                            f"Invalid JSON in message: {message.body.decode()}"
+                        )
                         logger.error(f"JSONDecodeError: {e}")
                         raise
                     except KeyError as e:
@@ -166,17 +181,18 @@ async def consume_messages():
             logger.error(f"RabbitMQ connection error: {str(e)}")
             await asyncio.sleep(5)
 
-@app.get("/history/{user_id}")  
-async def get_user_history(user_id: str):  
-    async with connection_pool.acquire() as conn:  
-        rows = await conn.fetch(  
+
+@app.get("/history/{user_id}")
+async def get_user_history(user_id: str):
+    async with connection_pool.acquire() as conn:
+        rows = await conn.fetch(
             """  
             SELECT user_id, message, response, timestamp 
             FROM chat_history 
             WHERE user_id = $1  
             ORDER BY timestamp DESC  
             LIMIT 50  
-            """,  
-            user_id  
-        )  
+            """,
+            user_id,
+        )
         return [dict(row) for row in rows]

@@ -76,13 +76,11 @@ export default function ConfirmPassword() {
           new_password: formData.password.trim(),
         };
 
-        console.log("Payload sent with these current data", payload);
 
-        const response = await authAPI.post(
+        await authAPI.post(
           "/password-reset-confirm/",
           payload,
         );
-        console.log("response from the backend", response);
 
         setIsSuccess(true);
         setTimeout(() => {

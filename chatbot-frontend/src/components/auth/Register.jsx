@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import PropTypes from "prop-types";
 import { useNavigate, useLocation } from "react-router-dom";
 import authAPI from "../../utils/axios";
 import { AuthLayout, EmailInput, PasswordInput, NameInput } from "./AuthLayout";

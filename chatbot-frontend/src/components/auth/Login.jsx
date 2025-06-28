@@ -14,7 +14,7 @@ import {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-export default function Login() {
+export default function Login({ onLogin }) {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -99,18 +99,8 @@ export default function Login() {
           remember_me: rememberMe,
         };
 
-        // Debug logging
-        console.log("Login attempt with payload:", {
-          ...payload,
-          password: "[REDACTED]",
-        });
-        console.log(
-          "Making request to:",
-          authAPI.defaults.baseURL + "/auth/login/",
-        );
 
         const response = await authAPI.post("/auth/login/", payload);
-        console.log("Login response:", response);
 
         const data = response.data;
 
@@ -154,8 +144,8 @@ export default function Login() {
         } else if (err.response?.status === 400) {
           setError(
             err.response?.data?.error ||
-              err.response?.data?.message ||
-              "Invalid request. Please check your input.",
+            err.response?.data?.message ||
+            "Invalid request. Please check your input.",
           );
         } else if (err.code === "ECONNABORTED") {
           setError(
@@ -164,8 +154,8 @@ export default function Login() {
         } else {
           setError(
             err.response?.data?.error ||
-              err.response?.data?.message ||
-              "Login failed. Please try again later.",
+            err.response?.data?.message ||
+            "Login failed. Please try again later.",
           );
         }
       } finally {
@@ -205,3 +195,7 @@ export default function Login() {
     </AuthLayout>
   );
 }
+
+Login.propTypes = {
+  onLogin: PropTypes.func.isRequired,
+};
