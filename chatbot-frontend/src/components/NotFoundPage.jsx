@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Home, ArrowLeft, Search, Zap } from "lucide-react";
 
 const NotFoundPage = () => {
@@ -86,8 +86,8 @@ const NotFoundPage = () => {
             Oops! Page Not Found
           </h2>
           <p className="text-lg md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
-            The page you're looking for seems to have vanished into the digital
-            void. Don't worry though – even the best explorers sometimes take a
+            The page you&apos;re looking for seems to have vanished into the digital
+            void. Don&apos;t worry though – even the best explorers sometimes take a
             wrong turn.
           </p>
         </div>

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import PropTypes from "prop-types";
-import { useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+// import PropTypes from "prop-types";
 import authAPI from "../../utils/axios";
 import { AuthLayout, EmailInput, PasswordInput, NameInput } from "./AuthLayout";
 
