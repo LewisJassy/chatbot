@@ -1,8 +1,16 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import authAPI from '../../utils/axios';
 import { AuthLayout, EmailInput, PasswordInput, NameInput } from './AuthLayout';
+=======
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+// import PropTypes from "prop-types";
+import authAPI from "../../utils/axios";
+import { AuthLayout, EmailInput, PasswordInput, NameInput } from "./AuthLayout";
+
 
 // Validation constants
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

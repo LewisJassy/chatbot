@@ -8,6 +8,7 @@ import {
   Lock,
   User,
 } from "lucide-react";
+import PropTypes from "prop-types";
 
 const MAX_INPUT_LENGTH = 100;
 
@@ -105,6 +106,24 @@ export function AuthLayout({
   );
 }
 
+AuthLayout.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string.isRequired,
+  children: PropTypes.node,
+  isSuccess: PropTypes.bool,
+  successMessage: PropTypes.string,
+  error: PropTypes.string,
+  isLoading: PropTypes.bool,
+  submitText: PropTypes.string.isRequired,
+  toggleText: PropTypes.string,
+  onToggle: PropTypes.func,
+  onSubmit: PropTypes.func,
+  isPasswordReset: PropTypes.bool,
+  passworedResetText: PropTypes.string,
+  onPasswordReset: PropTypes.func,
+};
+
+
 export function EmailInput({ value, onChange }) {
   return (
     <div className="space-y-2">
@@ -132,6 +151,11 @@ export function EmailInput({ value, onChange }) {
     </div>
   );
 }
+
+EmailInput.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
 
 export function PasswordInput({
   value,
@@ -176,7 +200,17 @@ export function PasswordInput({
     </div>
   );
 }
-
+PasswordInput.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  showPassword: PropTypes.bool.isRequired,
+  setShowPassword: PropTypes.func.isRequired,
+  id: PropTypes.string,
+  name: PropTypes.string,
+  placeholder: PropTypes.string,
+  autoComplete: PropTypes.string,
+  confirmPassword: PropTypes.bool,
+};
 export function NameInput({ value, onChange }) {
   return (
     <div className="space-y-2">
@@ -205,6 +239,11 @@ export function NameInput({ value, onChange }) {
   );
 }
 
+NameInput.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
+
 export function RememberMeCheckbox({ rememberMe, setRememberMe }) {
   return (
     <div className="flex items-center justify-between">
@@ -226,3 +265,8 @@ export function RememberMeCheckbox({ rememberMe, setRememberMe }) {
     </div>
   );
 }
+
+RememberMeCheckbox.propTypes = {
+  rememberMe: PropTypes.bool.isRequired,
+  setRememberMe: PropTypes.func.isRequired,
+};
