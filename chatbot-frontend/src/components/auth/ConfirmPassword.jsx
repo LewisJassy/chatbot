@@ -1,17 +1,17 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import authAPI from "../../utils/axios";
-import { AuthLayout, PasswordInput } from "./AuthLayout";
-import { useParams } from "react-router-dom";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import authAPI from '../../utils/axios';
+import { AuthLayout, PasswordInput } from './AuthLayout';
+import { useParams } from 'react-router-dom';
 
 // Validation constants
 
 export default function ConfirmPassword() {
   const [formData, setFormData] = useState({
-    password: "",
-    confirmPassword: "",
+    password: '',
+    confirmPassword: '',
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,9 +22,11 @@ export default function ConfirmPassword() {
   const MIN_PASSWORD_LENGTH = 8;
   const { uid, token } = useParams();
 
-  // if (!uid && token) {
-  //   navigate("/login");
-  // }
+  useEffect(() => {
+    if (!uid || !token) {
+      navigate('*');
+    }
+  }, [uid, token, navigate]);
 
   useEffect(() => {
     return () => {
@@ -36,12 +38,12 @@ export default function ConfirmPassword() {
     const { password, confirmPassword } = formData;
 
     if (!confirmPassword.trim() || !password.trim()) {
-      setError("All fields are required.");
+      setError('All fields are required.');
       return false;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return false;
     }
 
@@ -61,7 +63,7 @@ export default function ConfirmPassword() {
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
-      setError("");
+      setError('');
       setIsLoading(true);
 
       if (!validateForm()) {
@@ -76,35 +78,24 @@ export default function ConfirmPassword() {
           new_password: formData.password.trim(),
         };
 
-
-        await authAPI.post(
-          "/password-reset-confirm/",
-          payload,
-        );
+        await authAPI.post('/password-reset-confirm/', payload);
 
         setIsSuccess(true);
         setTimeout(() => {
-          if (isMounted.current) {
-            navigate("/login");
-          }
+          navigate('/login');
         }, 1500);
       } catch (err) {
-        console.error("Password Reset Error:", err);
+        console.error('Password Reset Error:', err);
 
-        let errorMessage =
-          "Error while resetting the password. Please try again.";
+        let errorMessage = 'Error while resetting the password. Please try again.';
 
         if (err.response?.data) {
           const errorData = err.response.data;
 
           if (errorData.uid) {
-            errorMessage = Array.isArray(errorData.uid)
-              ? errorData.uid[0]
-              : errorData.uid;
+            errorMessage = Array.isArray(errorData.uid) ? errorData.uid[0] : errorData.uid;
           } else if (errorData.token) {
-            errorMessage = Array.isArray(errorData.token)
-              ? errorData.token[0]
-              : errorData.token;
+            errorMessage = Array.isArray(errorData.token) ? errorData.token[0] : errorData.token;
           } else if (errorData.password) {
             errorMessage = Array.isArray(errorData.password)
               ? errorData.password[0]
@@ -127,20 +118,20 @@ export default function ConfirmPassword() {
         setIsLoading(false);
       }
     },
-    [formData, navigate, validateForm, uid, token],
+    [formData, navigate, validateForm, uid, token]
   );
 
   return (
     <AuthLayout
-      title="Set New Password"
-      subtitle="One step away!"
+      title='Set New Password'
+      subtitle='One step away!'
       isSuccess={isSuccess}
-      successMessage="Password Resetted Successfully!"
+      successMessage='Password Resetted Successfully!'
       error={error}
       isLoading={isLoading}
-      submitText="Reset"
-      toggleText="Got The Password?"
-      onToggle={() => navigate("/login")}
+      submitText='Reset'
+      toggleText='Got The Password?'
+      onToggle={() => navigate('/login')}
       onSubmit={handleSubmit}
     >
       <PasswordInput
@@ -148,18 +139,18 @@ export default function ConfirmPassword() {
         onChange={handleInputChange}
         showPassword={showPassword}
         setShowPassword={setShowPassword}
-        autoComplete="password"
+        autoComplete='password'
         confirmPassword={false}
       />
       <PasswordInput
-        id="confirmPassword"
-        name="confirmPassword"
+        id='confirmPassword'
+        name='confirmPassword'
         value={formData.confirmPassword}
         onChange={handleInputChange}
         showPassword={showConfirmPassword}
         setShowPassword={setShowConfirmPassword}
-        placeholder="Confirm your password"
-        autoComplete="new-password"
+        placeholder='Confirm your password'
+        autoComplete='new-password'
         confirmPassword={true}
       />
     </AuthLayout>

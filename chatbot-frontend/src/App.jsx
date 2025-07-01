@@ -106,11 +106,7 @@ function AppRoutes({ isAuthenticated, handleLogin, handleLogout }) {
       <Route
         path="/register"
         element={
-          isAuthenticated ? (
-            <Navigate to="/chat" replace />
-          ) : (
-            <Register onLogin={handleLogin} />
-          )
+          isAuthenticated ? <Navigate to="/chat" replace /> : <Register />
         }
       />
       <Route

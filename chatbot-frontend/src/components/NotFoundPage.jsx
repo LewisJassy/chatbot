@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Home, ArrowLeft, Search, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const NotFoundPage = () => {
+  const navigate = useNavigate();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [glitchActive, setGlitchActive] = useState(false);
 
@@ -26,11 +28,11 @@ const NotFoundPage = () => {
 
   const handleGoHome = () => {
     // Replace with your routing logic
-    window.location.href = "/";
+    navigate("/");
   };
 
   const handleGoBack = () => {
-    window.history.back();
+    navigate(-1);
   };
 
   return (
