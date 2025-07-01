@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import PropTypes from "prop-types";
-import { useNavigate} from "react-router-dom";
-import authAPI from "../../utils/axios";
-import { AuthLayout, EmailInput, PasswordInput, NameInput } from "./AuthLayout";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import authAPI from '../../utils/axios';
+import { AuthLayout, EmailInput, PasswordInput, NameInput } from './AuthLayout';
 
 // Validation constants
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -11,12 +10,12 @@ const MIN_PASSWORD_LENGTH = 8;
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,17 +33,17 @@ export default function Register() {
     const { email, password, name, confirmPassword } = formData;
 
     if (!email.trim() || !password.trim() || !name.trim()) {
-      setError("All fields are required.");
+      setError('All fields are required.');
       return false;
     }
 
     if (!EMAIL_REGEX.test(email.trim())) {
-      setError("Please enter a valid email address.");
+      setError('Please enter a valid email address.');
       return false;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       return false;
     }
 
@@ -64,7 +63,7 @@ export default function Register() {
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
-      setError("");
+      setError('');
       setIsLoading(true);
 
       if (!validateForm()) {
@@ -79,40 +78,40 @@ export default function Register() {
           password: formData.password.trim(),
         };
 
-        await authAPI.post("/auth/register/", payload);
+        await authAPI.post('/auth/register/', payload);
 
         setIsSuccess(true);
 
         setTimeout(() => {
           if (isMounted.current) {
-            navigate("/login");
+            navigate('/login');
           }
         }, 1500);
       } catch (err) {
         setError(
           err.response?.data?.error ||
             err.response?.data?.message ||
-            "Failed to register. Please try again.",
+            'Failed to register. Please try again.'
         );
-        console.error("Registration error:", err);
+        console.error('Registration error:', err);
       } finally {
         setIsLoading(false);
       }
     },
-    [formData, navigate, validateForm],
+    [formData, navigate, validateForm]
   );
 
   return (
     <AuthLayout
-      title="Create Account"
-      subtitle="Join us and start chatting"
+      title='Create Account'
+      subtitle='Join us and start chatting'
       isSuccess={isSuccess}
-      successMessage="Registration Successful!"
+      successMessage='Registration Successful!'
       error={error}
       isLoading={isLoading}
-      submitText="Create Account"
-      toggleText="Already have an account?"
-      onToggle={() => navigate("/login")}
+      submitText='Create Account'
+      toggleText='Already have an account?'
+      onToggle={() => navigate('/login')}
       onSubmit={handleSubmit}
     >
       <NameInput value={formData.name} onChange={handleInputChange} />
@@ -122,17 +121,17 @@ export default function Register() {
         onChange={handleInputChange}
         showPassword={showPassword}
         setShowPassword={setShowPassword}
-        autoComplete="new-password"
+        autoComplete='new-password'
       />
       <PasswordInput
-        id="confirmPassword"
-        name="confirmPassword"
+        id='confirmPassword'
+        name='confirmPassword'
         value={formData.confirmPassword}
         onChange={handleInputChange}
         showPassword={showConfirmPassword}
         setShowPassword={setShowConfirmPassword}
-        placeholder="Confirm your password"
-        autoComplete="new-password"
+        placeholder='Confirm your password'
+        autoComplete='new-password'
         confirmPassword={true}
       />
     </AuthLayout>

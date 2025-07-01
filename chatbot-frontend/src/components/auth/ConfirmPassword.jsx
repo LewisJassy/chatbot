@@ -24,7 +24,7 @@ export default function ConfirmPassword() {
 
   useEffect(() => {
     if (!uid || !token) {
-      navigate('/login');
+      navigate('*');
     }
   }, [uid, token, navigate]);
 
@@ -82,9 +82,7 @@ export default function ConfirmPassword() {
 
         setIsSuccess(true);
         setTimeout(() => {
-          if (isMounted.current) {
-            navigate('/login');
-          }
+          navigate('/login');
         }, 1500);
       } catch (err) {
         console.error('Password Reset Error:', err);
