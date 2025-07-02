@@ -83,7 +83,9 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',  
     'http://127.0.0.1:5173',
-    'https://chatbot-gilt-tau.vercel.app'
+    'https://chatbot-gilt-tau.vercel.app',
+    'https://chatbot-liart-nine-45.vercel.app',
+    'https://vercel.app',  # Allow all Vercel subdomains
 ]
 
 CORS_ALLOW_METHODS = [
