@@ -1,8 +1,14 @@
+
 import axios from 'axios';
 
 // API Endpoints configuration
 const AUTH_API_URL = import.meta.env.VITE_AUTHENTICATION_URL || '';
+const CHAT_API_URL = import.meta.env.VITE_CHATBOT_URL || '';
 
+
+if (!import.meta.env.VITE_CHATBOT_URL) {
+  console.warn("VITE_CHATBOT_URL is not defined in environment variables. Using fallback value.");
+}
 
 if (!import.meta.env.VITE_AUTHENTICATION_URL) {
     console.warn("VITE_AUTHENTICATION_URL is not defined in environment variables. Using fallback value.");
@@ -19,7 +25,7 @@ export const authAPI = axios.create({
 });
 
 export const chatAPI = axios.create({
-  baseURL: '',
+  baseURL: CHAT_API_URL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

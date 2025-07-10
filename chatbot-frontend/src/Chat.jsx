@@ -54,7 +54,7 @@ export default function Chat({ onLogout }) {
     setInputMessage("");
 
     try {
-      const response = await chatAPI.post("/api/chat/", { 
+      const response = await chatAPI.post("api/chat/", { 
         message: inputMessage 
       });
       
