@@ -1,6 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from main import app  # import your FastAPI app
+import time
 
 client = TestClient(app)
 
@@ -22,6 +23,7 @@ def test_upsert_history():
     assert response.json()["status"] == "success"
 
 def test_similarity_search():
+    time.sleep(1)
     search_data = {
         "query": "How is the weather?",
         "role": "user"

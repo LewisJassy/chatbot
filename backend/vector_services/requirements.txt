@@ -1,9 +1,7 @@
 fastapi==0.110.2
 python-dotenv==1.0.1
-langchain-pinecone==0.1.1
-# langchain-community>=0.3.0,<0.3.25
-# langchain-core>=0.3.34,<1.0.0
-# langchain>=0.3.0,<1.0.0
+langchain-community>=0.3.0,<0.3.25
+langchain
 pinecone>=6.0.0,<7.0.0
 spacy==3.7.4
 pydantic==2.7.4
@@ -11,8 +9,7 @@ uvicorn==0.29.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
 thinc==8.2.2
 numpy==1.26.4
-langchain-cohere==0.1.1
-cohere<5.2
-# Skip fastavro build on Windows and ensure Cython for builds
-Cython>=3.0.2
+langchain-core>=0.3.34,<0.4.0
+cohere>=5.5.6,<6.0
 fastavro==1.6.3; sys_platform != "win32"
+Cython>=3.0.2; sys_platform != "win32"
