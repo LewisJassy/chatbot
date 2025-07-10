@@ -79,7 +79,6 @@ async def similarity_search(request: SimilaritySearchRequest):
         logger.info(f"Performing similarity search for query: {preprocessed_query[:50]}...")
         embed_response = co.embed(texts=[preprocessed_query], model="embed-english-v3.0", input_type="search_query")
         
-        # Try different ways to extract the vector
         try:
             vector = embed_response.embeddings.embeddings[0]
         except AttributeError:
