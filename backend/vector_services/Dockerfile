@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 
 RUN pip install --upgrade pip && \
-    pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+    pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt --verbose
 
 RUN python -m spacy download en_core_web_sm
 
