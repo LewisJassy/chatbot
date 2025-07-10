@@ -6,11 +6,10 @@ langchain-core>=0.3.34,<1.0.0
 langchain>=0.3.0,<1.0.0
 pinecone>=6.0.0,<7.0.0
 sentence-transformers==2.7.0
-huggingface-hub==0.23.0
 spacy==3.7.4
 pydantic==2.7.4
 uvicorn==0.29.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
 thinc==8.2.2
 numpy==1.26.4
-langchain-huggingface
+langchain-cohere
