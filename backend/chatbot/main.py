@@ -6,12 +6,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://chatbot-gilt-tau.vercel.app",
-        "https://chatbot-liart-nine-45.vercel.app",
-        "https://vercel.app"
-    ],
+    allow_origins=["*"],  # Allow all origins (enable CORS universally)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
