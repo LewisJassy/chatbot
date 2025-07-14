@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Configuration
-VECTOR_SERVICE_URL = os.getenv("VECTOR_SERVICE_URL", "http://localhost:82")
+VECTOR_SERVICES_URL = os.getenv("VECTOR_SERVICES_URL", "http://localhost:82")
 AUTH_URL = os.getenv("AUTH_URL", "http://127.0.0.1:8000")
 MAX_CONTEXT_TOKENS = 4000
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
@@ -130,7 +130,7 @@ async def _call_vector_service(query: str, role: str) -> dict:
     """Call the vector service for similarity search, retrying up to 3 times on failure."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            url = f"{VECTOR_SERVICE_URL}/similarity-search"
+            url = f"{VECTOR_SERVICES_URL}/similarity-search"
             logger.info(f"🔁 Calling vector service at: {url}")
             response = await client.post(
                 url,
