@@ -128,13 +128,17 @@ async def _stream_generator(message: str, context: str, user_id: str, history: R
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
 async def _call_vector_service(query: str, role: str) -> dict:
     """Call the vector service for similarity search, retrying up to 3 times on failure."""
-    async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.post(
-            f"{VECTOR_SERVICE_URL}/similarity-search",
-            json={"query": query, "role": role}
-        )
-        response.raise_for_status()
-        return response.json()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                f"{VECTOR_SERVICE_URL}/similarity-search",
+                json={"query": query, "role": role}
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError as e:
+        logger.info(f"❌ Failed to connect to vector service: {e}")
+        raise
 
 # Build context from vector results
 def _build_context(docs: list) -> str:
