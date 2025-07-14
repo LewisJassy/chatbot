@@ -130,15 +130,24 @@ async def _call_vector_service(query: str, role: str) -> dict:
     """Call the vector service for similarity search, retrying up to 3 times on failure."""
     try:
         async with httpx.AsyncClient(timeout=10) as client:
+            url = f"{VECTOR_SERVICE_URL}/similarity-search"
+            logger.info(f"🔁 Calling vector service at: {url}")
             response = await client.post(
-                f"{VECTOR_SERVICE_URL}/similarity-search",
+                url,
                 json={"query": query, "role": role}
             )
             response.raise_for_status()
             return response.json()
     except httpx.ConnectError as e:
-        logger.info(f"❌ Failed to connect to vector service: {e}")
+        logger.error(f"❌ Failed to connect to vector service: {e}")
         raise
+    except httpx.HTTPStatusError as e:
+        logger.error(f"🚨 Vector service returned error: {e.response.status_code} {e.response.text}")
+        raise
+    except Exception as e:
+        logger.exception("⚠️ Unexpected error while calling vector service.")
+        raise
+
 
 # Build context from vector results
 def _build_context(docs: list) -> str:
