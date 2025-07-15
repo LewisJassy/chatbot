@@ -7,7 +7,7 @@ import os
 import logging
 import json
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed, retry_if_exception_type
 from datetime import datetime
 from typing import AsyncGenerator
 
