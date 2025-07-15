@@ -7,7 +7,7 @@ import os
 import logging
 import json
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -142,6 +142,9 @@ async def _call_vector_service(query: str, role: str) -> dict:
         logger.error(f"❌ Failed to connect to vector service: {e}")
         raise
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            logger.warning(f"⚠️ Vector service rate limited (429). Proceeding without context.")
+            return []  # fallback to no context when rate limited
         logger.error(f"🚨 Vector service returned error: {e.response.status_code} {e.response.text}")
         raise
     except Exception as e:
