@@ -92,7 +92,7 @@ async def upsert_history(request: UpsertHistoryRequest):
 async def similarity_search(request: SimilaritySearchRequest):
     preprocessed_query = preprocess_text(request.query)
     embed_response = co.embed(texts=[preprocessed_query], model="embed-english-v3.0", input_type="search_document")
-    query_vector = np.array(embed_response.embeddings.embeddings[0], dtype=np.float32).tobytes()
+    query_vector = np.array(embed_response.embeddings[0], dtype=np.float32).tobytes()
     base_query = f'@role:{{{request.role}}}=>[KNN 5 @embedding $embedding]'
     redis_query = Query(base_query).paging(0, 5).dialect(2).return_fields("user_id", "message", "response", "timestamp", "role", "__embedding_score")
 
