@@ -30,7 +30,7 @@ export const chatAPI = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 second timeout for chat responses
+  timeout: 60000, // 30 second timeout for chat responses
 });
 
 // Request interceptors to add auth token
