@@ -137,7 +137,8 @@ class UserLoginView(APIView):
         if not user:
             user = authenticate(request, username=email, password=password)
             if user and user.is_active:
-                self._cache_user_data(user)
+                # cache in background to reduce response latency
+                _shared_executor.submit(self._cache_user_data, user)
                 logger.info(f"User {email} authenticated via database")
 
         if not user:
@@ -228,7 +229,8 @@ class PasswordResetRequestView(APIView):
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            # save (send email) asynchronously to reduce response time
+            _shared_executor.submit(serializer.save)
             return Response({'message': 'Reset email sent'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
