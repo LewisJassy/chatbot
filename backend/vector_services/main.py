@@ -71,7 +71,7 @@ def create_index(r: Redis):
 async def upsert_history(request: UpsertHistoryRequest):
     text = f"{request.message} {request.response}"
     preprocessed_text = preprocess_text(text)
-    embed_response = co.embed(texts=[preprocessed_text], model="embed-english-v3.0", input_type="search_document")
+    embed_response = co.embed(texts=[preprocessed_text], model="embed-english-v3.0", input_type="search_document",embedding_types=["float"])
 
     vector = embed_response.embeddings.embeddings[0]
     vector_bytes = np.array(vector, dtype=np.float32).tobytes()
@@ -92,7 +92,11 @@ async def upsert_history(request: UpsertHistoryRequest):
 async def similarity_search(request: SimilaritySearchRequest):
     preprocessed_query = preprocess_text(request.query)
     embed_response = co.embed(texts=[preprocessed_query], model="embed-english-v3.0", input_type="search_document")
-    query_vector = np.array(embed_response.embeddings[0], dtype=np.float32).tobytes()
+    print("Response:", embed_response.__dict__)
+    print("Embeddings:", embed_response.embeddings.__dict__)
+    print("Float embeddings:", embed_response.embeddings.float)
+    query_vector = np.array(embed_response.embeddings.float[0], dtype=np.float32).tobytes()
+    print("Embeddings structure:", embed_response.embeddings.__dict__)
     base_query = f'@role:{{{request.role}}}=>[KNN 5 @embedding $embedding]'
     redis_query = Query(base_query).paging(0, 5).dialect(2).return_fields("user_id", "message", "response", "timestamp", "role", "__embedding_score")
 
