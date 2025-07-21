@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
     message: str
-    role: str = "assistant"
-    stream: bool = False
+    role: str = "default"
+    stream: bool = True
 
 class ChatResponse(BaseModel):
     user_message: str
