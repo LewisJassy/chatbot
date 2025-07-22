@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed, retry_if_exception_type
 from datetime import datetime
 from typing import AsyncGenerator
-from backend.prompts.loader import PromptLoader
+from prompts.loader import PromptLoader
 
 # LangChain Imports
 from langchain_openai import ChatOpenAI
