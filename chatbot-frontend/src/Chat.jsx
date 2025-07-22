@@ -54,12 +54,48 @@ export default function Chat({ onLogout }) {
     setInputMessage("");
 
     try {
-      const response = await chatAPI.post("/api/chat", { 
-        message: inputMessage 
+      // Stream response via fetch for real-time chunks
+      const res = await fetch(`${chatAPI.defaults.baseURL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message: inputMessage, stream: true }),
       });
-      
-      const botMessage = { text: response.data.bot_response || response.data.response, isUser: false };
-      setMessages((prev) => [...prev, botMessage]);
+      if (!res.ok) throw res;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let botText = '';
+      // initialize empty bot message
+      setMessages(prev => [...prev, { text: '', isUser: false }]);
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        // parse SSE format "data: {...}\n\n"
+        const lines = chunk.split("\n\n");
+        lines.forEach(part => {
+          if (part.startsWith('data: ')) {
+            const dataStr = part.replace(/^data: /, '');
+            if (dataStr === '[DONE]') return;
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.chunk) {
+                botText += data.chunk;
+                // update last bot message
+                setMessages(prev => {
+                  const msgs = [...prev];
+                  msgs[msgs.length - 1].text = botText;
+                  return msgs;
+                });
+              }
+            } catch (e) {
+              console.error('Failed to parse SSE chunk', e);
+            }
+          }
+        });
+      }
     } catch (err) {
       if (err.response?.status === 401) {
         clearAuthTokens();
