@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import logging
 import json
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, wait_exponential, wait_fixed, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 from datetime import datetime
 from typing import AsyncGenerator
 from prompts.loader import PromptLoader
@@ -130,7 +130,7 @@ async def _stream_generator(message: str, context: str, user_id: str, history: R
         yield f"data: {json.dumps({'error': 'Stream interrupted'})}\n\n"
 
 # Vector similarity
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(2))
+@retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(5))
 async def _call_vector_service(query: str, role: str) -> dict:
     """Call the vector service for similarity search, retrying up to 3 times on failure."""
     try:
@@ -220,10 +220,7 @@ async def _generate_response_stream(message: str, context: str, history: RedisCh
     if context and len(context) > 2000:
         logger.warning("Context too long, truncating ...")
         context = "...previous context truncated...\n" + context[-2000:]
-    full_system_prompt = (
-        f"{escaped_prompt}\n\nContext: {context}\nChat History: {chat_history}"
-        if context else f"{escaped_prompt}\nChat History: {chat_history}"
-    )
+    full_system_prompt = escaped_prompt + "\n\nRelevant context:\n" + context
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(full_system_prompt),
         HumanMessagePromptTemplate.from_template("{input}")
